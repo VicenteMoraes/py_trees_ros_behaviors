@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -53,57 +53,57 @@ Core Tree (Dot Graph)
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.eight_dynamic_application_loading.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.eight_dynamic_application_loading.tutorial_create_root
 
 .. graphviz:: dot/tutorial-eight-core-tree.dot
    :align: center
-   :caption: py_trees_ros_tutorials.eight_dynamic_application_loading.tutorial_create_root
+   :caption: py_trees_ros_behaviors.eight_dynamic_application_loading.tutorial_create_root
 
 Application Subtree (Dot Graph)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-   $ py-trees-render --with-blackboard-variables py_trees_ros_tutorials.eight_dynamic_application_loading.tutorial_create_scan_subtree
+   $ py-trees-render --with-blackboard-variables py_trees_ros_behaviors.eight_dynamic_application_loading.tutorial_create_scan_subtree
 
 .. graphviz:: dot/tutorial-eight-application-subtree.dot
    :align: center
-   :caption: py_trees_ros_tutorials.eight_dynamic_application_loading.tutorial_create_scan_subtree
+   :caption: py_trees_ros_behaviors.eight_dynamic_application_loading.tutorial_create_scan_subtree
 
 Dynamic Application Tree (Class)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 380-384
    :caption: Dynamic Application Tree
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 386-397
    :caption: Init - Create the Root Tree
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 399-419
    :caption: Setup - Application Subscribers & Services
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 421-444
    :caption: Requests - Inserting Application Subtrees
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 467-482
    :caption: Post-Execution - Pruning Application Subtrees
 
-.. literalinclude:: ../py_trees_ros_tutorials/eight_dynamic_application_loading.py
+.. literalinclude:: ../py_trees_ros_behaviors/eight_dynamic_application_loading.py
    :language: python
    :linenos:
    :lines: 445-465
@@ -126,7 +126,7 @@ Running
 .. code-block:: bash
 
     # Launch the tutorial
-    $ ros2 launch py_trees_ros_tutorials tutorial_eight_dynamic_application_laoding_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_eight_dynamic_application_laoding_launch.py
     # In another shell, catch the tree snapshots
     $ py-trees-tree-watcher -b
     # Trigger scan/cancel requests from the qt dashboard
@@ -170,7 +170,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-dynamic-application-loading",
                 output='screen',
                 emulate_tty=True,

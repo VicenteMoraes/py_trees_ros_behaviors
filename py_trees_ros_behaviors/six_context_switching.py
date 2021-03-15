@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -32,12 +32,12 @@ Tree
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.six_context_switching.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.six_context_switching.tutorial_create_root
 
 .. graphviz:: dot/tutorial-six-context-switching.dot
    :align: center
 
-.. literalinclude:: ../py_trees_ros_tutorials/six_context_switching.py
+.. literalinclude:: ../py_trees_ros_behaviors/six_context_switching.py
    :language: python
    :linenos:
    :lines: 132-232
@@ -46,12 +46,12 @@ Tree
 Behaviour
 ---------
 
-The :class:`py_trees_ros_tutorials.behaviours.ScanContext` is the
+The :class:`py_trees_ros_behaviors.behaviours.ScanContext` is the
 context switching behaviour constructed for this tutorial.
 
-* :meth:`~py_trees_ros_tutorials.behaviours.ScanContext.initialise()`: trigger a sequence service calls to cache and set the /safety_sensors/enabled parameter to True
-* :meth:`~py_trees_ros_tutorials.behaviours.ScanContext.update()`: complete the chain of service calls & maintain the context
-* :meth:`~py_trees_ros_tutorials.behaviours.ScanContext.terminate()`: reset the parameter to the cached value
+* :meth:`~py_trees_ros_behaviors.behaviours.ScanContext.initialise()`: trigger a sequence service calls to cache and set the /safety_sensors/enabled parameter to True
+* :meth:`~py_trees_ros_behaviors.behaviours.ScanContext.update()`: complete the chain of service calls & maintain the context
+* :meth:`~py_trees_ros_behaviors.behaviours.ScanContext.terminate()`: reset the parameter to the cached value
 
 
 Context Switching
@@ -60,12 +60,12 @@ Context Switching
 .. graphviz:: dot/tutorial-six-context-switching-subtree.dot
    :align: center
 
-On entry into the parallel, the :class:`~py_trees_ros_tutorials.behaviours.ScanContext`
+On entry into the parallel, the :class:`~py_trees_ros_behaviors.behaviours.ScanContext`
 behaviour will cache and switch
 the safety sensors parameter. While in the parallel it will return with
 :data:`~py_trees.common.Status.RUNNING` indefinitely. When the rotation
 action succeeds or fails, it will terminate the parallel and subsequently
-the :class:`~py_trees_ros_tutorials.behaviours.ScanContext` will terminate,
+the :class:`~py_trees_ros_behaviors.behaviours.ScanContext` will terminate,
 resetting the safety sensors parameter to it's original value.
 
 Running
@@ -74,7 +74,7 @@ Running
 .. code-block:: bash
 
     # Launch the tutorial
-    $ ros2 launch py_trees_ros_tutorials tutorial_six_context_switching_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_six_context_switching_launch.py
     # In another shell, watch the parameter as a context switch occurs
     $ watch -n 1 ros2 param get /safety_sensors enabled
     # Trigger scan requests from the qt dashboard
@@ -116,7 +116,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-context-switching",
                 output='screen',
                 emulate_tty=True,

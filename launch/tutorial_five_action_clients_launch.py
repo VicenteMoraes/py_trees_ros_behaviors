@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -14,7 +14,7 @@ Tutorial 5 - Action Clients
 # Imports
 ##############################################################################
 
-import py_trees_ros_tutorials.five_action_clients as tutorial
+import py_trees_ros_behaviors.five_action_clients as tutorial
 
 ##############################################################################
 # Launch Service

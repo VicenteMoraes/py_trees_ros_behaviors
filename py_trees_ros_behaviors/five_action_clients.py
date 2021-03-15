@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -38,12 +38,12 @@ Tree
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.five_action_clients.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.five_action_clients.tutorial_create_root
 
 .. graphviz:: dot/tutorial-five-action-clients.dot
    :align: center
 
-.. literalinclude:: ../py_trees_ros_tutorials/five_action_clients.py
+.. literalinclude:: ../py_trees_ros_behaviors/five_action_clients.py
    :language: python
    :linenos:
    :lines: 208-307
@@ -98,7 +98,7 @@ perspiring inordinately on tree design ramifications.
 
 Instantiating the action client, configured for rotations:
 
-.. literalinclude:: ../py_trees_ros_tutorials/five_action_clients.py
+.. literalinclude:: ../py_trees_ros_behaviors/five_action_clients.py
    :language: python
    :linenos:
    :lines: 276-282
@@ -151,7 +151,7 @@ Running
 
 .. code-block:: bash
 
-    $ ros2 launch py_trees_ros_tutorials tutorial_five_action_clients_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_five_action_clients_launch.py
 
 Send scan requests from the qt dashboard.
 
@@ -192,7 +192,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-action-clients",
                 output='screen',
                 emulate_tty=True,

@@ -53,6 +53,7 @@ class MoveBase(py_trees_ros.mock.actions.GenericServer):
             duration=duration
         )
         self.pose = geometry_msgs.PoseStamped()
+        self.publisher_ = self.create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
         self.pose.pose.position = geometry_msgs.Point(x=0.0, y=0.0, z=0.0)
 
     def generate_feedback_message(self) -> py_trees_actions.MoveBase.Feedback:
@@ -67,8 +68,10 @@ class MoveBase(py_trees_ros.mock.actions.GenericServer):
         # and increment this to that proportion
         # self.odometry.pose.pose.position.x += 0.01
         self.pose.pose.position.x += 0.01
+        self.pose.header.frame_id = "odom"
         msg = py_trees_actions.MoveBase.Feedback()  # .Feedback() is more proper, but indexing can't find it
         msg.base_position = self.pose
+        self.publisher_.publish(self.pose)
         return msg
 
 

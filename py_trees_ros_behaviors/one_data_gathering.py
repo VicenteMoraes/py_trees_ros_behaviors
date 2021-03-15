@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -32,12 +32,12 @@ Tree
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.one_data_gathering.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.one_data_gathering.tutorial_create_root
 
 .. graphviz:: dot/tutorial-one-data-gathering.dot
    :align: center
 
-.. literalinclude:: ../py_trees_ros_tutorials/one_data_gathering.py
+.. literalinclude:: ../py_trees_ros_behaviors/one_data_gathering.py
    :language: python
    :linenos:
    :lines: 121-153
@@ -65,7 +65,7 @@ Running
 .. code-block:: bash
 
     # Launch the tutorial
-    $ ros2 launch py_trees_ros_tutorials tutorial_one_data_gathering_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_one_data_gathering_launch.py
     # In a different shell, introspect the entire blackboard
     $ py-trees-blackboard-watcher
     # Or selectively get the battery percentage
@@ -105,7 +105,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-data-gathering",
                 output='screen',
                 emulate_tty=True,

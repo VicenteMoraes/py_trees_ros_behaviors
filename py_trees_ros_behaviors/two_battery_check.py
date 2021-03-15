@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -20,12 +20,12 @@ Tree
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.two_battery_check.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.two_battery_check.tutorial_create_root
 
 .. graphviz:: dot/tutorial-two-battery-check.dot
    :align: center
 
-.. literalinclude:: ../py_trees_ros_tutorials/two_battery_check.py
+.. literalinclude:: ../py_trees_ros_behaviors/two_battery_check.py
    :language: python
    :linenos:
    :lines: 122-166
@@ -42,9 +42,9 @@ the :class:`py_trees.blackboard.CheckBlackboardVariable` class as the conditiona
 Behaviours
 ^^^^^^^^^^
 
-This tree makes use of the :class:`py_trees_ros_tutorials.behaviours.FlashLedStrip` behaviour.
+This tree makes use of the :class:`py_trees_ros_behaviors.behaviours.FlashLedStrip` behaviour.
 
-.. literalinclude:: ../py_trees_ros_tutorials/behaviours.py
+.. literalinclude:: ../py_trees_ros_behaviors/behaviours.py
    :language: python
    :linenos:
    :lines: 29-110
@@ -66,7 +66,7 @@ Running
 
 .. code-block:: bash
 
-    $ ros2 launch py_trees_ros_tutorials tutorial_two_battery_check_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_two_battery_check_launch.py
 
 Then play with the battery slider in the qt dashboard to trigger the decision
 branching in the tree.
@@ -105,7 +105,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-battery-check",
                 output='screen',
                 emulate_tty=True,

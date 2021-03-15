@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # License: BSD
-#   https://github.com/splintered-reality/py_trees_ros_tutorials/raw/devel/LICENSE
+#   https://github.com/splintered-reality/py_trees_ros_behaviors/raw/devel/LICENSE
 #
 ##############################################################################
 # Documentation
@@ -34,12 +34,12 @@ Tree
 
 .. code-block:: bash
 
-   $ py-trees-render -b py_trees_ros_tutorials.seven_docking_cancelling_failing.tutorial_create_root
+   $ py-trees-render -b py_trees_ros_behaviors.seven_docking_cancelling_failing.tutorial_create_root
 
 .. graphviz:: dot/tutorial-seven-docking-cancelling-failing.dot
    :align: center
 
-.. literalinclude:: ../py_trees_ros_tutorials/seven_docking_cancelling_failing.py
+.. literalinclude:: ../py_trees_ros_behaviors/seven_docking_cancelling_failing.py
    :language: python
    :linenos:
    :lines: 211-398
@@ -153,7 +153,7 @@ Running
 .. code-block:: bash
 
     # Launch the tutorial
-    $ ros2 launch py_trees_ros_tutorials tutorial_seven_docking_cancelling_failing_launch.py
+    $ ros2 launch py_trees_ros_behaviors tutorial_seven_docking_cancelling_failing_launch.py
     # In another shell
     $ py-trees-tree-watcher -b
     # Trigger scan/cancel requests from the qt dashboard
@@ -195,7 +195,7 @@ def generate_launch_description():
         mock.launch.generate_launch_nodes() +
         [
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 executable="tree-docking-cancelling-failing",
                 output='screen',
                 emulate_tty=True,
