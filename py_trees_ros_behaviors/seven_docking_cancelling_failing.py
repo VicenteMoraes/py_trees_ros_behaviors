@@ -207,6 +207,95 @@ def generate_launch_description():
 # Tutorial
 ##############################################################################
 
+def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
+    sub_root = py_trees.composites.Sequence("Waypoints Subtree")
+
+    # move_actions = []
+    for waypoint in waypoints:
+        move_to_somewhere = py_trees_ros.actions.ActionClient(
+            name="Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
+            action_type=py_trees_actions.MoveBase,
+            action_name="move_base",
+            action_goal=py_trees_actions.MoveBase.Goal(),
+            generate_feedback_message=lambda msg: "moving home to x="+str(waypoint[0])+" y="+str(waypoint[1])
+        )
+        sub_root.add_child(move_to_somewhere)
+        # move_actions.append(move_to_somewhere)
+
+    result_succeeded_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="reached_goal 'succeeded'",
+        variable_name='reached_goal',
+        variable_value=True
+    )
+    sub_root.add_child(result_succeeded_to_bb)
+    return sub_root
+
+def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
+
+    # Pseudo Waypoints Path
+    ways = [[0,0],
+            [1,1],
+            [2,2]]
+
+    root = py_trees.composites.Sequence("NavTo")
+
+    topics2bb = py_trees.composites.Sequence("Topics2BB")
+    scan2bb = py_trees_ros.subscribers.EventToBlackboard(
+        name="Scan2BB",
+        topic_name="/dashboard/scan",
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        variable_name="event_scan_button"
+    )
+    cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
+        name="Cancel2BB",
+        topic_name="/dashboard/cancel",
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        variable_name="event_cancel_button"
+    )
+    battery2bb = py_trees_ros.battery.ToBlackboard(
+        name="Battery2BB",
+        topic_name="/battery/state",
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        threshold=30.0
+    )
+    tasks = py_trees.composites.Selector("Tasks")
+    flash_red = behaviours.FlashLedStrip(
+        name="Flash Red",
+        colour="red"
+    )
+    # Emergency Tasks
+    def check_battery_low_on_blackboard(blackboard: py_trees.blackboard.Blackboard) -> bool:
+        return blackboard.battery_low_warning
+
+    battery_emergency = py_trees.decorators.EternalGuard(
+        name="Battery Low?",
+        condition=check_battery_low_on_blackboard,
+        blackboard_keys={"battery_low_warning"},
+        child=flash_red
+    )
+    reach_goal = py_trees.composites.Selector(name="Reach Goal?")
+    guard_room = py_trees.composites.Sequence("Guard Room")
+    is_room_reached = py_trees.behaviours.CheckBlackboardVariableValue(
+        name="Room Reached?",
+        check=py_trees.common.ComparisonExpression(
+            variable="reached_goal",
+            value=True,
+            operator=operator.eq
+        )
+    )
+    suc = py_trees.behaviours.Success(name='Success')
+    sub_ways = create_waypoints_sequence(ways)
+    
+    
+    # Build Tree
+    root.add_child(topics2bb)
+    topics2bb.add_children([scan2bb, cancel2bb, battery2bb])
+    root.add_child(tasks)
+    tasks.add_children([battery_emergency, reach_goal])
+    reach_goal.add_children([guard_room, sub_ways])
+    guard_room.add_children([is_room_reached, suc])
+
+    return root
 
 def tutorial_create_root() -> py_trees.behaviour.Behaviour:
     """
@@ -403,7 +492,7 @@ def tutorial_main():
     Entry point for the demo script.
     """
     rclpy.init(args=None)
-    root = tutorial_create_root()
+    root = create_nav_to_room_bt()
     tree = py_trees_ros.trees.BehaviourTree(
         root=root,
         unicode_tree_debug=True
