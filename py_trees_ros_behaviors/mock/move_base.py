@@ -19,15 +19,49 @@ Mocks a simple action server that rotates the robot 360 degrees.
 
 import argparse
 import geometry_msgs.msg as geometry_msgs
+import std_msgs.msg as std_msgs
 import py_trees_ros.mock.actions
 import py_trees_ros_interfaces.action as py_trees_actions
 import rclpy
+from rclpy.node import Node
 import sys
 
 ##############################################################################
 # Class
 ##############################################################################
 
+class MinimalPublisher(Node):
+
+    def __init__(self):
+        super().__init__('minimal_publisher')
+        self.publisher_ = self.create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
+        # timer_period = 0.5  # seconds
+        # self.timer = self.create_timer(timer_period, self.timer_callback)
+        # self.i = 0
+
+    def timer_callback(self):
+        msg = std_msgs.String()
+        msg.data = 'Hello World: %d' % self.i
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data)
+        self.i += 1
+
+    def publish(pose):
+        self.publisher_.publish(pose)
+
+class MinimalSubscriber(Node):
+
+    def __init__(self):
+        super().__init__('minimal_subscriber')
+        self.subscription = self.create_subscription(
+            std_msgs.String,
+            'topic',
+            self.listener_callback,
+            10)
+        self.subscription  # prevent unused variable warning
+
+    def listener_callback(self, msg):
+        self.get_logger().info('I heard: "%s"' % msg.data)
 
 class MoveBase(py_trees_ros.mock.actions.GenericServer):
     """
@@ -52,9 +86,14 @@ class MoveBase(py_trees_ros.mock.actions.GenericServer):
             generate_feedback_message=self.generate_feedback_message,
             duration=duration
         )
+        self.publisher1_ = super().create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
         self.pose = geometry_msgs.PoseStamped()
-        self.publisher_ = self.create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
+        # geometry_msgs.PoseStamped(header=std_msgs.Header(stamp=builtin_interfaces.Time(sec=0, nanosec=0), frame_id='odom'), 
+        #                           pose=geometry_msgs.Pose(position=geometry_msgs.Point(x=0.0, y=0.0, z=0.0), 
+        #                           orientation=geometry_msgs.Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)))
+        self.publisher_ = MinimalPublisher()
         self.pose.pose.position = geometry_msgs.Point(x=0.0, y=0.0, z=0.0)
+        self.subscriber_ = MinimalSubscriber()
 
     def generate_feedback_message(self) -> py_trees_actions.MoveBase.Feedback:
         """
