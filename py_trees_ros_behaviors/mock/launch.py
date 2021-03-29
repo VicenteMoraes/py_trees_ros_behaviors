@@ -39,7 +39,7 @@ def generate_launch_nodes() -> typing.List[launch_ros.actions.Node]:
         executable = "mock-{}".format(node_name.replace('_', '-'))
         launch_nodes.append(
             launch_ros.actions.Node(
-                package='py_trees_ros_tutorials',
+                package='py_trees_ros_behaviors',
                 name=node_name,
                 executable=executable,
                 output='screen',
