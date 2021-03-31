@@ -21,6 +21,8 @@ import rcl_interfaces.srv as rcl_srvs
 import rclpy
 import std_msgs.msg as std_msgs
 
+from typing import Any, Callable
+import random
 ##############################################################################
 # Behaviours
 ##############################################################################
@@ -266,3 +268,145 @@ class ScanContext(py_trees.behaviour.Behaviour):
             self.node.get_logger().error(self.feedback_message)
             # self.node.get_logger().info('service call failed %r' % (future.exception(),))
         return True
+
+class NavToWaypoint(py_trees.behaviour.Behaviour):
+    def __init__(
+                self,
+                msg_type: Any,
+                msg_goal: Any,
+                name: str=py_trees.common.Name.AUTO_GENERATED,
+                goal_topic_name: str="/led_strip/command",
+                feddback_topic_name: str="/led_strip/command",
+                colour: str="red",
+                ):
+        super(NavToWaypoint, self).__init__(name=name)
+        self.goal_topic_name = goal_topic_name
+        self.feddback_topic_name = feddback_topic_name
+        self.msg_type = msg_type
+        self.msg_goal = msg_goal
+        self.node = None
+        self.status = ["STATUS_UNKNOWN", "STATUS_EXECUTING", "STATUS_SUCCEEDED", "STATUS_ABORTED"]
+        self.result_status = "STATUS_UNKNOWN"
+
+    # def __init__(
+    #             self,
+    #             name: str,
+    #             topic_name: str="/led_strip/command",
+    #             colour: str="red"
+    #     ):
+    #         super(FlashLedStrip, self).__init__(name=name)
+    #         self.topic_name = topic_name
+    #         self.colour = colour
+
+    def setup(self, **kwargs):
+        """
+        When is this called?
+          This function should be either manually called by your program
+          to setup this behaviour alone, or more commonly, via
+          :meth:`~py_trees.behaviour.Behaviour.setup_with_descendants`
+          or :meth:`~py_trees.trees.BehaviourTree.setup`, both of which
+          will iterate over this behaviour, it's children (it's children's
+          children ...) calling :meth:`~py_trees.behaviour.Behaviour.setup`
+          on each in turn.
+
+          If you have vital initialisation necessary to the success
+          execution of your behaviour, put a guard in your
+          :meth:`~py_trees.behaviour.Behaviour.initialise` method
+          to protect against entry without having been setup.
+
+        What to do here?
+          Delayed one-time initialisation that would otherwise interfere
+          with offline rendering of this behaviour in a tree to dot graph
+          or validation of the behaviour's configuration.
+
+          Good examples include:
+
+          - Hardware or driver initialisation
+          - Middleware initialisation (e.g. ROS pubs/subs/services)
+          - A parallel checking for a valid policy configuration after
+            children have been added or removed
+
+        Args:
+            **kwargs (:obj:`dict`): distribute arguments to this
+               behaviour and in turn, all of it's children
+
+        Raises:
+            :class:`KeyError`: if a ros2 node isn't passed under the key 'node' in kwargs
+            :class:`~py_trees_ros.exceptions.TimedOutError`: if the action server could not be found
+        """
+        self.logger.debug("  %s [NavToWaypoint::setup()]" % self.name)
+        try:
+            self.node = kwargs['node']
+        except KeyError as e:
+            error_message = "didn't find 'node' in setup's kwargs [{}][{}]".format(self.qualified_name)
+            raise KeyError(error_message) from e  # 'direct cause' traceability
+
+        self.publisher_ = self.node.create_publisher(self.msg_type, self.goal_topic_name, 10)
+        self.subscription = self.node.create_subscription(
+            std_msgs.String,
+            self.feddback_topic_name,
+            self._listener_feedback,
+            10)
+        self.subscription  # prevent unused variable warning
+
+    def initialise(self):
+        """
+        When is this called?
+          The first time your behaviour is ticked and anytime the
+          status is not RUNNING thereafter.
+
+        What to do here?
+          Any initialisation you need before putting your behaviour
+          to work.
+        """
+        self.logger.debug("  %s [NavToWaypoint::initialise()]" % self.name)
+        self.publisher_.publish(self.msg_goal)
+        self.result_status = "STATUS_EXECUTING"
+
+    def update(self) -> py_trees.common.Status:
+        """
+        When is this called?
+          Every time your behaviour is ticked.
+
+        What to do here?
+          - Triggering, checking, monitoring. Anything...but do not block!
+          - Set a feedback message
+          - return a py_trees.common.Status.[RUNNING, SUCCESS, FAILURE]
+        """
+        self.logger.debug("  %s [NavToWaypoint::update()]" % self.name)
+        ready_to_make_a_decision = random.choice([True, False])
+        decision = random.choice([True, False])
+
+        if self.result_status == "STATUS_EXECUTING":
+            self.feedback_message = "running"
+            return py_trees.common.Status.RUNNING
+        elif self.result_status == "STATUS_SUCCEEDED":
+            self.feedback_message = "success"
+            return py_trees.common.Status.SUCCESS
+        else:
+            self.feedback_message = "failure"
+            return py_trees.common.Status.FAILURE
+            
+        # if not ready_to_make_a_decision:
+        #     return py_trees.common.Status.RUNNING
+        # elif decision:
+        #     self.feedback_message = "We are not bar!"
+        #     return py_trees.common.Status.SUCCESS
+        # else:
+        #     self.feedback_message = "Uh oh"
+        #     return py_trees.common.Status.FAILURE
+
+    def terminate(self, new_status: py_trees.common.Status):
+        """
+        When is this called?
+           Whenever your behaviour switches to a non-running state.
+            - SUCCESS || FAILURE : your behaviour's work cycle has finished
+            - INVALID : a higher priority branch has interrupted, or shutting down
+        """
+        self.logger.debug("  %s [NavToWaypoint::terminate().terminate()][%s->%s]" % (self.name, self.status, new_status))
+
+    def _listener_feedback(self, msg):
+        self.node.get_logger().info('I heard: "%s"' % msg.data)
+        if msg.data == "Done":
+            print("Goal achieved")
+            self.result_status = "STATUS_SUCCEEDED"
