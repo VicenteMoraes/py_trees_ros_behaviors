@@ -176,6 +176,8 @@ import py_trees.console as console
 import py_trees_ros_interfaces.action as py_trees_actions  # noqa
 import rclpy
 
+import geometry_msgs.msg as geometry_msgs
+
 from . import behaviours
 from . import mock
 
@@ -183,7 +185,7 @@ from . import mock
 # Launcher
 ##############################################################################
 
-
+# ros2 launch py_trees_ros_behaviors tutorial_seven_docking_cancelling_failing_launch.py
 def generate_launch_description():
     """
     Launcher for the tutorial.
@@ -212,13 +214,17 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 
     # move_actions = []
     for waypoint in waypoints:
-        move_to_somewhere = py_trees_ros.actions.ActionClient(
-            name="Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
-            action_type=py_trees_actions.MoveBase,
-            action_name="move_base",
-            action_goal=py_trees_actions.MoveBase.Goal(),
-            generate_feedback_message=lambda msg: "moving home to x="+str(waypoint[0])+" y="+str(waypoint[1])
+        goal_pose = geometry_msgs.PoseStamped()
+        goal_pose.pose.position = geometry_msgs.Point(x=waypoint[0], y=waypoint[1], z=0.0)
+        move_to_somewhere = behaviours.NavToWaypoint(
+                name="Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
+                msg_type=geometry_msgs.PoseStamped,
+                msg_goal=goal_pose,
+                goal_topic_name="/turtlebot1/send_goal",
+                feddback_topic_name="/turtlebot1/mb_feedback",
+                colour="red"
         )
+        print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
         sub_root.add_child(move_to_somewhere)
         # move_actions.append(move_to_somewhere)
 
@@ -233,9 +239,9 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
 
     # Pseudo Waypoints Path
-    ways = [[0,0],
-            [1,1],
-            [2,2]]
+    ways = [[1.0, 0.0],
+            [2.0, 0.0],
+            [3.0, 0.0]]
 
     root = py_trees.composites.Sequence("NavTo")
 
@@ -286,7 +292,7 @@ def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
     suc = py_trees.behaviours.Success(name='Success')
     sub_ways = create_waypoints_sequence(ways)
     
-    
+
     # Build Tree
     root.add_child(topics2bb)
     topics2bb.add_children([scan2bb, cancel2bb, battery2bb])
