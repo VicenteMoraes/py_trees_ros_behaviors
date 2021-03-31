@@ -119,6 +119,7 @@ setup(
             'mock-docking-controller = py_trees_ros_behaviors.mock.dock:main',
             'mock-led-strip = py_trees_ros_behaviors.mock.led_strip:main',
             'mock-move-base = py_trees_ros_behaviors.mock.move_base:main',
+            'mock-mock-mb = py_trees_ros_behaviors.mock.mock_mb:main',
             'mock-rotation-controller = py_trees_ros_behaviors.mock.rotate:main',
             'mock-safety-sensors = py_trees_ros_behaviors.mock.safety_sensors:main',
             # Mock Tests
