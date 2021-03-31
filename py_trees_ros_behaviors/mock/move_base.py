@@ -19,6 +19,7 @@ Mocks a simple action server that rotates the robot 360 degrees.
 
 import argparse
 import geometry_msgs.msg as geometry_msgs
+import nav_msgs.msg as nav_msgs
 import std_msgs.msg as std_msgs
 import py_trees_ros.mock.actions
 import py_trees_ros_interfaces.action as py_trees_actions
@@ -46,7 +47,7 @@ class MinimalPublisher(Node):
         self.get_logger().info('Publishing: "%s"' % msg.data)
         self.i += 1
 
-    def publish(pose):
+    def publish_pose(self, pose):
         self.publisher_.publish(pose)
 
 class MinimalSubscriber(Node):
@@ -84,16 +85,31 @@ class MoveBase(py_trees_ros.mock.actions.GenericServer):
             action_name="move_base",
             action_type=py_trees_actions.MoveBase,
             generate_feedback_message=self.generate_feedback_message,
+            goal_received_callback=self.execute_goal,
             duration=duration
         )
-        self.publisher1_ = super().create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
         self.pose = geometry_msgs.PoseStamped()
-        # geometry_msgs.PoseStamped(header=std_msgs.Header(stamp=builtin_interfaces.Time(sec=0, nanosec=0), frame_id='odom'), 
-        #                           pose=geometry_msgs.Pose(position=geometry_msgs.Point(x=0.0, y=0.0, z=0.0), 
-        #                           orientation=geometry_msgs.Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)))
-        self.publisher_ = MinimalPublisher()
+        self.publisher_ = self.node.create_publisher(geometry_msgs.PoseStamped, '/turtlebot1/send_goal', 10)
+        self.subscription = self.node.create_subscription(
+            std_msgs.String,
+            '/turtlebot1/mb_feedback',
+            self.listener_callback,
+            10)
+        self.subscription  # prevent unused variable warning
+        self.flag_goal_completed = False
         self.pose.pose.position = geometry_msgs.Point(x=0.0, y=0.0, z=0.0)
         self.subscriber_ = MinimalSubscriber()
+
+    def listener_callback(self, msg):
+        self.node.get_logger().info('I heard: "%s"' % msg.data)
+        if msg.data == "Done":
+            print("Goal achieved")
+            self.flag_goal_completed = True
+
+    def execute_goal(self, goal):
+        self.pose = goal.target_pose
+        self.flag_goal_completed = False
+        self.publisher_.publish(self.pose)
 
     def generate_feedback_message(self) -> py_trees_actions.MoveBase.Feedback:
         """
@@ -110,7 +126,10 @@ class MoveBase(py_trees_ros.mock.actions.GenericServer):
         self.pose.header.frame_id = "odom"
         msg = py_trees_actions.MoveBase.Feedback()  # .Feedback() is more proper, but indexing can't find it
         msg.base_position = self.pose
-        self.publisher_.publish(self.pose)
+        # print(self.percent_completed)
+        # self.publisher_.publish(self.pose)
+        if not self.flag_goal_completed:
+            self.percent_completed = 13.33
         return msg
 
 
