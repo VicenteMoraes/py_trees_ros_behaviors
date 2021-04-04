@@ -222,7 +222,9 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
                 msg_goal=goal_pose,
                 goal_topic_name="/turtlebot1/send_goal",
                 feddback_topic_name="/turtlebot1/mb_feedback",
-                colour="red"
+                odom_topic_name="/turtlebot1/odom_aux",
+                colour="red",
+                intermediate_pose=waypoint[2]
         )
         print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
         sub_root.add_child(move_to_somewhere)
@@ -239,11 +241,17 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
 
     # Pseudo Waypoints Path
-    ways = [[1.0, 0.0],
-            [2.0, 0.0],
-            [3.0, 0.0]]
+    ways = [[1.0, 1.0, True ],
+            [2.0, 2.0, True ],
+            [3.0, 3.0, False]]
 
-    root = py_trees.composites.Sequence("NavTo")
+    # root = py_trees.composites.Sequence("NavTo")
+    root = py_trees.composites.Parallel(
+        name="NavTo",
+        policy=py_trees.common.ParallelPolicy.SuccessOnAll(
+            synchronise=False
+        )
+    )
 
     topics2bb = py_trees.composites.Sequence("Topics2BB")
     scan2bb = py_trees_ros.subscribers.EventToBlackboard(
@@ -279,7 +287,7 @@ def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
         blackboard_keys={"battery_low_warning"},
         child=flash_red
     )
-    reach_goal = py_trees.composites.Selector(name="Reach Goal?")
+    reach_goal = py_trees.composites.Selector(name="Goal Reached?")
     guard_room = py_trees.composites.Sequence("Guard Room")
     is_room_reached = py_trees.behaviours.CheckBlackboardVariableValue(
         name="Room Reached?",
@@ -499,6 +507,7 @@ def tutorial_main():
     """
     rclpy.init(args=None)
     root = create_nav_to_room_bt()
+    # root = tutorial_create_root()
     tree = py_trees_ros.trees.BehaviourTree(
         root=root,
         unicode_tree_debug=True
