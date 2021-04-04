@@ -20,9 +20,11 @@ import rcl_interfaces.msg as rcl_msgs
 import rcl_interfaces.srv as rcl_srvs
 import rclpy
 import std_msgs.msg as std_msgs
+import geometry_msgs.msg as geometry_msgs
+import nav_msgs.msg as nav_msgs
 
 from typing import Any, Callable
-import random
+import random, math
 ##############################################################################
 # Behaviours
 ##############################################################################
@@ -277,14 +279,20 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
                 name: str=py_trees.common.Name.AUTO_GENERATED,
                 goal_topic_name: str="/led_strip/command",
                 feddback_topic_name: str="/led_strip/command",
+                odom_topic_name: str="amcl_pose",
                 colour: str="red",
+                waypoint_distance_tolerance=0.5,
+                intermediate_pose=True
                 ):
         super(NavToWaypoint, self).__init__(name=name)
         self.goal_topic_name = goal_topic_name
         self.feddback_topic_name = feddback_topic_name
+        self.odom_topic_name = odom_topic_name
         self.msg_type = msg_type
         self.msg_goal = msg_goal
         self.node = None
+        self.waypoint_distance_tolerance = waypoint_distance_tolerance
+        self.intermediate_pose = intermediate_pose
         self.status = ["STATUS_UNKNOWN", "STATUS_EXECUTING", "STATUS_SUCCEEDED", "STATUS_ABORTED"]
         self.result_status = "STATUS_UNKNOWN"
 
@@ -342,12 +350,15 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
             raise KeyError(error_message) from e  # 'direct cause' traceability
 
         self.publisher_ = self.node.create_publisher(self.msg_type, self.goal_topic_name, 10)
+        self.publisher_param_ = self.node.create_publisher(std_msgs.Bool, self.goal_topic_name + '/set_intermediate_pose', 10)
+    
         self.subscription = self.node.create_subscription(
             std_msgs.String,
             self.feddback_topic_name,
             self._listener_feedback,
             10)
-        self.subscription  # prevent unused variable warning
+
+        # self.subscription  # prevent unused variable warning
 
     def initialise(self):
         """
@@ -360,7 +371,9 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
           to work.
         """
         self.logger.debug("  %s [NavToWaypoint::initialise()]" % self.name)
+        self.sent_goal = self.msg_goal
         self.publisher_.publish(self.msg_goal)
+        self.publisher_param_.publish(std_msgs.Bool(data=self.intermediate_pose))
         self.result_status = "STATUS_EXECUTING"
 
     def update(self) -> py_trees.common.Status:
@@ -408,5 +421,21 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
     def _listener_feedback(self, msg):
         self.node.get_logger().info('I heard: "%s"' % msg.data)
         if msg.data == "Done":
+            print("Goal achieved")
+            self.result_status = "STATUS_SUCCEEDED"
+
+    def _listener_odom(self, msg):
+        current_pose = msg.pose.pose
+        x_curr = msg.pose.pose.position.x
+        y_curr = msg.pose.pose.position.y
+        x_goal = self.sent_goal.pose.position.x
+        y_goal = self.sent_goal.pose.position.y
+
+        dist_to_goal = math.sqrt((x_curr-x_goal)**2 + (y_curr-y_goal)**2)
+        self.node.get_logger().info("Current pose x=%.2f y=%.2f" % (x_curr,y_curr))
+        self.node.get_logger().info("Current goal x=%.2f y=%.2f" % (x_goal,y_goal))
+        self.node.get_logger().info("Distance to waypoint goal = %.2f" % dist_to_goal)
+
+        if (dist_to_goal < self.waypoint_distance_tolerance):
             print("Goal achieved")
             self.result_status = "STATUS_SUCCEEDED"
