@@ -392,13 +392,13 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
 
         if self.result_status == "STATUS_EXECUTING":
             self.feedback_message = "running"
-            return py_trees.common.Status.RUNNING
+            return py_trees.common.Status.SUCCESS
         elif self.result_status == "STATUS_SUCCEEDED":
             self.feedback_message = "success"
             return py_trees.common.Status.SUCCESS
         else:
             self.feedback_message = "failure"
-            return py_trees.common.Status.FAILURE
+            return py_trees.common.Status.SUCCESS
             
         # if not ready_to_make_a_decision:
         #     return py_trees.common.Status.RUNNING

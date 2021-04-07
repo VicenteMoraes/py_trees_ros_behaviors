@@ -167,6 +167,8 @@ Running
 
 import operator
 import sys
+import time
+import functools
 
 import launch
 import launch_ros
@@ -311,7 +313,7 @@ def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
 
     return root
 
-def tutorial_create_root() -> py_trees.behaviour.Behaviour:
+def create_second_bt() -> py_trees.behaviour.Behaviour:
     """
     Insert a task between battery emergency and idle behaviours that
     controls a rotation action controller and notifications simultaenously
@@ -500,18 +502,44 @@ def tutorial_create_root() -> py_trees.behaviour.Behaviour:
     celebrate.add_children([celebrate_flash_green, celebrate_pause])
     return root
 
+def load_skill(skill) -> py_trees.behaviour.Behaviour:
+    if skill == "NavToRoom":
+        root = create_nav_to_room_bt()
+    elif skill == "OpenDrawer":
+        pass
+    elif skill == "SencondBT":
+        root = create_second_bt()
+    else:
+        root = None
+    return root
+
+skill_name = "SencondBT"
+
+def get_plan():
+    global skill_name
+    if skill_name == "SencondBT":
+        skill_name = "NavToRoom"
+        return "NavToRoom"
+    else:
+        skill_name = "SencondBT"
+        return "SencondBT"
+
+def send_report(status):
+    print(status)
 
 def tutorial_main():
     """
     Entry point for the demo script.
     """
     rclpy.init(args=None)
-    root = create_nav_to_room_bt()
-    # root = tutorial_create_root()
+    # root = create_nav_to_room_bt()
+    # root = create_second_bt()
+    suc = py_trees.behaviours.Success(name="Success")
     tree = py_trees_ros.trees.BehaviourTree(
-        root=root,
+        root=suc,
         unicode_tree_debug=True
     )
+    tree.root.tick_once()
     try:
         tree.setup(timeout=15)
     except py_trees_ros.exceptions.TimedOutError as e:
@@ -526,12 +554,29 @@ def tutorial_main():
         rclpy.shutdown()
         sys.exit(1)
 
-    tree.tick_tock(period_ms=4000.0)
+    while rclpy.ok():
+        try:
+            print(tree.root.status)
+            if tree.root.status == py_trees.common.Status.SUCCESS:
+                skill = get_plan()
+                root = load_skill(skill)
+                tree = py_trees_ros.trees.BehaviourTree(
+                    root=root,
+                    unicode_tree_debug=True
+                )
+            elif tree.root.status == py_trees.common.Status.RUNNING:
+                tree.root.tick_once()
+                print(py_trees.display.unicode_tree(root=tree.root))
+                send_report(tree.root.status)
+            else:
+                send_report(tree.root.status)
 
-    try:
-        rclpy.spin(tree.node)
-    except KeyboardInterrupt:
-        pass
+            rclpy.spin_once(tree.node)
+            time.sleep(1)
+            # console.logerror("tick")
+            # rclpy.spin(tree.node)
+        except KeyboardInterrupt:
+            pass
 
     tree.shutdown()
     rclpy.shutdown()
