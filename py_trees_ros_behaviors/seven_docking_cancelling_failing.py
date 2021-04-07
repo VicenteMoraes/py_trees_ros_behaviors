@@ -214,6 +214,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 
     # move_actions = []
     for waypoint in waypoints:
+        print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
         goal_pose = geometry_msgs.PoseStamped()
         goal_pose.pose.position = geometry_msgs.Point(x=waypoint[0], y=waypoint[1], z=0.0)
         move_to_somewhere = behaviours.NavToWaypoint(
@@ -226,7 +227,6 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
                 colour="red",
                 intermediate_pose=waypoint[2]
         )
-        print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
         sub_root.add_child(move_to_somewhere)
         # move_actions.append(move_to_somewhere)
 
@@ -241,9 +241,9 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
 
     # Pseudo Waypoints Path
-    ways = [[1.0, 1.0, True ],
-            [2.0, 2.0, True ],
-            [3.0, 3.0, False]]
+    ways = [[1.0, -0.25, True ],
+            [2.0, -0.25, True ],
+            [4.0, -0.25, False]]
 
     # root = py_trees.composites.Sequence("NavTo")
     root = py_trees.composites.Parallel(
@@ -526,7 +526,7 @@ def tutorial_main():
         rclpy.shutdown()
         sys.exit(1)
 
-    tree.tick_tock(period_ms=1000.0)
+    tree.tick_tock(period_ms=4000.0)
 
     try:
         rclpy.spin(tree.node)
