@@ -23,6 +23,8 @@ import std_msgs.msg as std_msgs
 import geometry_msgs.msg as geometry_msgs
 import nav_msgs.msg as nav_msgs
 
+import numbers
+import time
 from typing import Any, Callable
 import random, math
 ##############################################################################
@@ -271,6 +273,79 @@ class ScanContext(py_trees.behaviour.Behaviour):
             # self.node.get_logger().info('service call failed %r' % (future.exception(),))
         return True
 
+class MyTimer(py_trees.behaviour.Behaviour):
+    """
+    Simple timer class that is :py:data:`~py_trees.common.Status.RUNNING` until the timer
+    runs out, at which point it is :data:`~py_trees.common.Status.SUCCESS`. This can be
+    used in a wide variety of situations - pause, duration, timeout depending on how
+    it is wired into the tree (e.g. pause in a sequence, duration/timeout in
+    a parallel).
+
+    The timer gets reset either upon entry (:meth:`~py_trees.behaviour.Behaviour.initialise`)
+    if it hasn't already been set and gets cleared when it either runs out, or the behaviour is
+    interrupted by a higher priority or parent cancelling it.
+
+    Args:
+        name (:obj:`str`): name of the behaviour
+        duration (:obj:`int`): length of time to run (in seconds)
+
+    Raises:
+        TypeError: if the provided duration is not a real number
+
+    .. note::
+        This succeeds the first time the behaviour is ticked **after** the expected
+        finishing time.
+
+    .. tip::
+        Use the :func:`~py_trees.decorators.RunningIsFailure` decorator if you need
+        :data:`~py_trees.common.Status.FAILURE` until the timer finishes.
+    """
+    def __init__(self, name="Timer", duration=5.0):
+        super(MyTimer, self).__init__(name)
+        if not isinstance(duration, numbers.Real):
+            raise TypeError("Timer: duration should be int or float, but you passed in {}".format(type(duration)))
+        self.duration = duration
+        self.finish_time = None
+        self.feedback_message = "duration set to '{0}'s".format(self.duration)
+
+
+    def initialise(self):
+        """
+        Store the expected finishing time.
+        """
+        self.logger.debug("%s.initialise()" % self.__class__.__name__)
+        if self.finish_time is None:
+            self.finish_time = time.time() + self.duration
+        self.feedback_message = "configured to fire in '{0}' seconds".format(self.duration)
+
+
+    def update(self):
+        """
+        Check current time against the expected finishing time. If it is in excess, flip to
+        :data:`~py_trees.common.Status.SUCCESS`.
+        """
+        self.logger.debug("%s.update()" % self.__class__.__name__)
+        current_time = time.time()
+        self.logger.debug("%f" % (self.finish_time - current_time))
+        if current_time > self.finish_time:
+            self.feedback_message = "timer ran out [{0}]".format(self.duration)
+            return py_trees.common.Status.SUCCESS
+        else:
+            # do not show the time, it causes the tree to be 'changed' every tick
+            # and we don't want to spam visualisations with almost meaningless updates
+            self.feedback_message = "still running"  # (%s)" % (self.finish_time - current_time)
+            return py_trees.common.Status.RUNNING
+
+
+    def terminate(self, new_status):
+        """
+        Clear the expected finishing time.
+        """
+        self.logger.debug("%s.terminate(%s)" % (self.__class__.__name__, "%s->%s" % (self.status, new_status) if self.status != new_status else "%s" % new_status))
+        # clear the time if finishing with SUCCESS or in the case of an interruption from INVALID
+        if new_status == py_trees.common.Status.SUCCESS or new_status == py_trees.common.Status.INVALID:
+            self.finish_time = None
+
 class NavToWaypoint(py_trees.behaviour.Behaviour):
     def __init__(
                 self,
@@ -351,7 +426,7 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
 
         self.publisher_ = self.node.create_publisher(self.msg_type, self.goal_topic_name, 10)
         self.publisher_param_ = self.node.create_publisher(std_msgs.Bool, self.goal_topic_name + '/set_intermediate_pose', 10)
-    
+
         self.subscription = self.node.create_subscription(
             std_msgs.String,
             self.feddback_topic_name,
@@ -392,13 +467,203 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
 
         if self.result_status == "STATUS_EXECUTING":
             self.feedback_message = "running"
-            return py_trees.common.Status.SUCCESS
+            return py_trees.common.Status.RUNNING
         elif self.result_status == "STATUS_SUCCEEDED":
             self.feedback_message = "success"
             return py_trees.common.Status.SUCCESS
         else:
             self.feedback_message = "failure"
+            return py_trees.common.Status.FAILURE
+            
+        # if not ready_to_make_a_decision:
+        #     return py_trees.common.Status.RUNNING
+        # elif decision:
+        #     self.feedback_message = "We are not bar!"
+        #     return py_trees.common.Status.SUCCESS
+        # else:
+        #     self.feedback_message = "Uh oh"
+        #     return py_trees.common.Status.FAILURE
+
+    def terminate(self, new_status: py_trees.common.Status):
+        """
+        When is this called?
+           Whenever your behaviour switches to a non-running state.
+            - SUCCESS || FAILURE : your behaviour's work cycle has finished
+            - INVALID : a higher priority branch has interrupted, or shutting down
+        """
+        self.logger.debug("  %s [NavToWaypoint::terminate().terminate()][%s->%s]" % (self.name, self.status, new_status))
+
+    def _listener_feedback(self, msg):
+        self.node.get_logger().info('I heard: "%s"' % msg.data)
+        if msg.data == "Done":
+            print("Goal achieved")
+            self.result_status = "STATUS_SUCCEEDED"
+
+    def _listener_odom(self, msg):
+        current_pose = msg.pose.pose
+        x_curr = msg.pose.pose.position.x
+        y_curr = msg.pose.pose.position.y
+        x_goal = self.sent_goal.pose.position.x
+        y_goal = self.sent_goal.pose.position.y
+
+        dist_to_goal = math.sqrt((x_curr-x_goal)**2 + (y_curr-y_goal)**2)
+        self.node.get_logger().info("Current pose x=%.2f y=%.2f" % (x_curr,y_curr))
+        self.node.get_logger().info("Current goal x=%.2f y=%.2f" % (x_goal,y_goal))
+        self.node.get_logger().info("Distance to waypoint goal = %.2f" % dist_to_goal)
+
+        if (dist_to_goal < self.waypoint_distance_tolerance):
+            print("Goal achieved")
+            self.result_status = "STATUS_SUCCEEDED"
+
+class NavToFromBB(py_trees.behaviour.Behaviour):
+    def __init__(
+                self,
+                msg_type: Any,
+                # msg_goal: Any,
+                blackboard_variable: str,
+                name: str=py_trees.common.Name.AUTO_GENERATED,
+                goal_topic_name: str="/led_strip/command",
+                feddback_topic_name: str="/led_strip/command",
+                odom_topic_name: str="amcl_pose",
+                colour: str="red",
+                waypoint_distance_tolerance=0.5,
+                intermediate_pose=True
+                ):
+        super(NavToFromBB, self).__init__(name=name)
+        self.goal_topic_name = goal_topic_name
+        self.feddback_topic_name = feddback_topic_name
+        self.odom_topic_name = odom_topic_name
+        self.msg_type = msg_type
+        self.blackboard = self.attach_blackboard_client(name=self.name)
+        self.blackboard_variable = blackboard_variable
+        self.key = blackboard_variable.split('.')[0]  # in case it is nested
+        self.blackboard.register_key(
+            key=self.key,
+            access=py_trees.common.Access.READ
+        )
+        self.node = None
+        self.publisher = None
+        self.waypoint_distance_tolerance = waypoint_distance_tolerance
+        self.intermediate_pose = intermediate_pose
+        self.status = ["STATUS_UNKNOWN", "STATUS_EXECUTING", "STATUS_SUCCEEDED", "STATUS_ABORTED"]
+        self.result_status = "STATUS_UNKNOWN"
+
+    # def __init__(
+    #             self,
+    #             name: str,
+    #             topic_name: str="/led_strip/command",
+    #             colour: str="red"
+    #     ):
+    #         super(FlashLedStrip, self).__init__(name=name)
+    #         self.topic_name = topic_name
+    #         self.colour = colour
+
+    def setup(self, **kwargs):
+        """
+        When is this called?
+          This function should be either manually called by your program
+          to setup this behaviour alone, or more commonly, via
+          :meth:`~py_trees.behaviour.Behaviour.setup_with_descendants`
+          or :meth:`~py_trees.trees.BehaviourTree.setup`, both of which
+          will iterate over this behaviour, it's children (it's children's
+          children ...) calling :meth:`~py_trees.behaviour.Behaviour.setup`
+          on each in turn.
+
+          If you have vital initialisation necessary to the success
+          execution of your behaviour, put a guard in your
+          :meth:`~py_trees.behaviour.Behaviour.initialise` method
+          to protect against entry without having been setup.
+
+        What to do here?
+          Delayed one-time initialisation that would otherwise interfere
+          with offline rendering of this behaviour in a tree to dot graph
+          or validation of the behaviour's configuration.
+
+          Good examples include:
+
+          - Hardware or driver initialisation
+          - Middleware initialisation (e.g. ROS pubs/subs/services)
+          - A parallel checking for a valid policy configuration after
+            children have been added or removed
+
+        Args:
+            **kwargs (:obj:`dict`): distribute arguments to this
+               behaviour and in turn, all of it's children
+
+        Raises:
+            :class:`KeyError`: if a ros2 node isn't passed under the key 'node' in kwargs
+            :class:`~py_trees_ros.exceptions.TimedOutError`: if the action server could not be found
+        """
+        self.logger.debug("  %s [NavToWaypoint::setup()]" % self.name)
+        try:
+            self.node = kwargs['node']
+        except KeyError as e:
+            error_message = "didn't find 'node' in setup's kwargs [{}][{}]".format(self.qualified_name)
+            raise KeyError(error_message) from e  # 'direct cause' traceability
+
+        self.publisher_ = self.node.create_publisher(self.msg_type, self.goal_topic_name, 10)
+        self.publisher_param_ = self.node.create_publisher(std_msgs.Bool, self.goal_topic_name + '/set_intermediate_pose', 10)
+
+        self.subscription = self.node.create_subscription(
+            std_msgs.String,
+            self.feddback_topic_name,
+            self._listener_feedback,
+            10)
+
+        # self.subscription  # prevent unused variable warning
+
+    def initialise(self):
+        """
+        When is this called?
+          The first time your behaviour is ticked and anytime the
+          status is not RUNNING thereafter.
+
+        What to do here?
+          Any initialisation you need before putting your behaviour
+          to work.
+        """
+        self.logger.debug("%s.initialise()" % self.__class__.__name__)
+        # self.sent_goal = self.msg_goal
+        # self.publisher_.publish(self.msg_goal)
+        self.publisher_param_.publish(std_msgs.Bool(data=self.intermediate_pose))
+        self.result_status = "STATUS_EXECUTING"
+        try:
+            if isinstance(self.blackboard.get(self.blackboard_variable), self.msg_type):
+                self.publisher_.publish(self.blackboard.get(self.blackboard_variable))
+                self.logger.debug("publishing msg = [{}]".format(self.blackboard.get(self.blackboard_variable)))
+            else:
+                raise TypeError("{} is not the required type [{}][{}]".format(
+                    self.blackboard_variable,
+                    self.msg_type,
+                    type(self.blackboard.get(self.blackboard_variable)))
+                )
+            self.feedback_message = "published"
+            # return py_trees.common.Status.SUCCESS
+        except KeyError:
+            self.feedback_message = "nothing to publish"
+            return py_trees.common.Status.FAILURE
+
+    def update(self) -> py_trees.common.Status:
+        """
+        Publish the specified variable from the blackboard.
+
+        Raises:
+            TypeError if the blackboard variable is not of the required type
+
+        Returns:
+            :data:`~py_trees.common.Status.FAILURE` (variable does not exist on the blackboard) or :data:`~py_trees.common.Status.SUCCESS` (published)
+        """
+        self.logger.debug("%s.update()" % self.__class__.__name__)
+
+        if self.result_status == "STATUS_EXECUTING":
+            self.feedback_message = "running"
+            return py_trees.common.Status.RUNNING
+        elif self.result_status == "STATUS_SUCCEEDED":
+            self.feedback_message = "success"
             return py_trees.common.Status.SUCCESS
+        else:
+            self.feedback_message = "failure"
+            return py_trees.common.Status.FAILURE
             
         # if not ready_to_make_a_decision:
         #     return py_trees.common.Status.RUNNING

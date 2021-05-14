@@ -167,8 +167,12 @@ Running
 
 import operator
 import sys
+import os
 import time
 import functools
+import argparse
+import json
+import time
 
 import launch
 import launch_ros
@@ -181,6 +185,7 @@ import rclpy
 import geometry_msgs.msg as geometry_msgs
 
 from . import behaviours
+from . import skills
 from . import mock
 
 ##############################################################################
@@ -211,336 +216,198 @@ def generate_launch_description():
 # Tutorial
 ##############################################################################
 
-def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
-    sub_root = py_trees.composites.Sequence("Waypoints Subtree")
 
-    # move_actions = []
-    for waypoint in waypoints:
-        print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
-        goal_pose = geometry_msgs.PoseStamped()
-        goal_pose.pose.position = geometry_msgs.Point(x=waypoint[0], y=waypoint[1], z=0.0)
-        move_to_somewhere = behaviours.NavToWaypoint(
-                name="Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
-                msg_type=geometry_msgs.PoseStamped,
-                msg_goal=goal_pose,
-                goal_topic_name="/turtlebot1/send_goal",
-                feddback_topic_name="/turtlebot1/mb_feedback",
-                odom_topic_name="/turtlebot1/odom_aux",
-                colour="red",
-                intermediate_pose=waypoint[2]
-        )
-        sub_root.add_child(move_to_somewhere)
-        # move_actions.append(move_to_somewhere)
-
-    result_succeeded_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="reached_goal 'succeeded'",
-        variable_name='reached_goal',
-        variable_value=True
-    )
-    sub_root.add_child(result_succeeded_to_bb)
-    return sub_root
-
-def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
-
-    # Pseudo Waypoints Path
-    ways = [[1.0, -0.25, True ],
-            [2.0, -0.25, True ],
-            [4.0, -0.25, False]]
-
-    # root = py_trees.composites.Sequence("NavTo")
-    root = py_trees.composites.Parallel(
-        name="NavTo",
-        policy=py_trees.common.ParallelPolicy.SuccessOnAll(
-            synchronise=False
-        )
-    )
-
-    topics2bb = py_trees.composites.Sequence("Topics2BB")
-    scan2bb = py_trees_ros.subscribers.EventToBlackboard(
-        name="Scan2BB",
-        topic_name="/dashboard/scan",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        variable_name="event_scan_button"
-    )
-    cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
-        name="Cancel2BB",
-        topic_name="/dashboard/cancel",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        variable_name="event_cancel_button"
-    )
-    battery2bb = py_trees_ros.battery.ToBlackboard(
-        name="Battery2BB",
-        topic_name="/battery/state",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        threshold=30.0
-    )
-    tasks = py_trees.composites.Selector("Tasks")
-    flash_red = behaviours.FlashLedStrip(
-        name="Flash Red",
-        colour="red"
-    )
-    # Emergency Tasks
-    def check_battery_low_on_blackboard(blackboard: py_trees.blackboard.Blackboard) -> bool:
-        return blackboard.battery_low_warning
-
-    battery_emergency = py_trees.decorators.EternalGuard(
-        name="Battery Low?",
-        condition=check_battery_low_on_blackboard,
-        blackboard_keys={"battery_low_warning"},
-        child=flash_red
-    )
-    reach_goal = py_trees.composites.Selector(name="Goal Reached?")
-    guard_room = py_trees.composites.Sequence("Guard Room")
-    is_room_reached = py_trees.behaviours.CheckBlackboardVariableValue(
-        name="Room Reached?",
-        check=py_trees.common.ComparisonExpression(
-            variable="reached_goal",
-            value=True,
-            operator=operator.eq
-        )
-    )
-    suc = py_trees.behaviours.Success(name='Success')
-    sub_ways = create_waypoints_sequence(ways)
-    
-
-    # Build Tree
-    root.add_child(topics2bb)
-    topics2bb.add_children([scan2bb, cancel2bb, battery2bb])
-    root.add_child(tasks)
-    tasks.add_children([battery_emergency, reach_goal])
-    reach_goal.add_children([guard_room, sub_ways])
-    guard_room.add_children([is_room_reached, suc])
-
-    return root
-
-def create_second_bt() -> py_trees.behaviour.Behaviour:
-    """
-    Insert a task between battery emergency and idle behaviours that
-    controls a rotation action controller and notifications simultaenously
-    to scan a room.
-
-    Returns:
-        the root of the tree
-    """
-    root = py_trees.composites.Parallel(
-        name="Tutorial Seven",
-        policy=py_trees.common.ParallelPolicy.SuccessOnAll(
-            synchronise=False
-        )
-    )
-
-    topics2bb = py_trees.composites.Sequence("Topics2BB")
-    scan2bb = py_trees_ros.subscribers.EventToBlackboard(
-        name="Scan2BB",
-        topic_name="/dashboard/scan",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        variable_name="event_scan_button"
-    )
-    cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
-        name="Cancel2BB",
-        topic_name="/dashboard/cancel",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        variable_name="event_cancel_button"
-    )
-    battery2bb = py_trees_ros.battery.ToBlackboard(
-        name="Battery2BB",
-        topic_name="/battery/state",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        threshold=30.0
-    )
-    tasks = py_trees.composites.Selector("Tasks")
-    flash_red = behaviours.FlashLedStrip(
-        name="Flash Red",
-        colour="red"
-    )
-
-    # Emergency Tasks
-    def check_battery_low_on_blackboard(blackboard: py_trees.blackboard.Blackboard) -> bool:
-        return blackboard.battery_low_warning
-
-    battery_emergency = py_trees.decorators.EternalGuard(
-        name="Battery Low?",
-        condition=check_battery_low_on_blackboard,
-        blackboard_keys={"battery_low_warning"},
-        child=flash_red
-    )
-    # Worker Tasks
-    scan = py_trees.composites.Sequence(name="Scan")
-    is_scan_requested = py_trees.behaviours.CheckBlackboardVariableValue(
-        name="Scan?",
-        check=py_trees.common.ComparisonExpression(
-            variable="event_scan_button",
-            value=True,
-            operator=operator.eq
-        )
-    )
-    scan_or_die = py_trees.composites.Selector(name="Scan or Die")
-    die = py_trees.composites.Sequence(name="Die")
-    failed_notification = py_trees.composites.Parallel(
-        name="Notification",
-        policy=py_trees.common.ParallelPolicy.SuccessOnOne()
-    )
-    failed_flash_green = behaviours.FlashLedStrip(name="Flash Red", colour="red")
-    failed_pause = py_trees.timers.Timer("Pause", duration=3.0)
-    result_failed_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="Result2BB\n'failed'",
-        variable_name='scan_result',
-        variable_value='failed'
-    )
-    ere_we_go = py_trees.composites.Sequence(name="Ere we Go")
-    undock = py_trees_ros.actions.ActionClient(
-        name="UnDock",
-        action_type=py_trees_actions.Dock,
-        action_name="dock",
-        action_goal=py_trees_actions.Dock.Goal(dock=False),
-        generate_feedback_message=lambda msg: "undocking"
-    )
-    scan_or_be_cancelled = py_trees.composites.Selector("Scan or Be Cancelled")
-    cancelling = py_trees.composites.Sequence("Cancelling?")
-    is_cancel_requested = py_trees.behaviours.CheckBlackboardVariableValue(
-        name="Cancel?",
-        check=py_trees.common.ComparisonExpression(
-            variable="event_cancel_button",
-            value=True,
-            operator=operator.eq
-        )
-    )
-    move_home_after_cancel = py_trees_ros.actions.ActionClient(
-        name="Move Home",
-        action_type=py_trees_actions.MoveBase,
-        action_name="move_base",
-        action_goal=py_trees_actions.MoveBase.Goal(),
-        generate_feedback_message=lambda msg: "moving home"
-    )
-    result_cancelled_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="Result2BB\n'cancelled'",
-        variable_name='scan_result',
-        variable_value='cancelled'
-    )
-    move_out_and_scan = py_trees.composites.Sequence("Move Out and Scan")
-    move_base = py_trees_ros.actions.ActionClient(
-        name="Move Out",
-        action_type=py_trees_actions.MoveBase,
-        action_name="move_base",
-        action_goal=py_trees_actions.MoveBase.Goal(),
-        generate_feedback_message=lambda msg: "moving out"
-    )
-    scanning = py_trees.composites.Parallel(
-        name="Scanning",
-        policy=py_trees.common.ParallelPolicy.SuccessOnOne()
-    )
-    scan_context_switch = behaviours.ScanContext("Context Switch")
-    scan_rotate = py_trees_ros.actions.ActionClient(
-        name="Rotate",
-        action_type=py_trees_actions.Rotate,
-        action_name="rotate",
-        action_goal=py_trees_actions.Rotate.Goal(),
-        generate_feedback_message=lambda msg: "{:.2f}%%".format(msg.feedback.percentage_completed)
-    )
-    scan_flash_blue = behaviours.FlashLedStrip(name="Flash Blue", colour="blue")
-    move_home_after_scan = py_trees_ros.actions.ActionClient(
-        name="Move Home",
-        action_type=py_trees_actions.MoveBase,
-        action_name="move_base",
-        action_goal=py_trees_actions.MoveBase.Goal(),
-        generate_feedback_message=lambda msg: "moving home"
-    )
-    result_succeeded_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="Result2BB\n'succeeded'",
-        variable_name='scan_result',
-        variable_value='succeeded'
-    )
-    celebrate = py_trees.composites.Parallel(
-        name="Celebrate",
-        policy=py_trees.common.ParallelPolicy.SuccessOnOne()
-    )
-    celebrate_flash_green = behaviours.FlashLedStrip(name="Flash Green", colour="green")
-    celebrate_pause = py_trees.timers.Timer("Pause", duration=3.0)
-    dock = py_trees_ros.actions.ActionClient(
-        name="Dock",
-        action_type=py_trees_actions.Dock,
-        action_name="dock",
-        action_goal=py_trees_actions.Dock.Goal(dock=True),  # noqa
-        generate_feedback_message=lambda msg: "docking"
-    )
-
-    class SendResult(py_trees.behaviour.Behaviour):
-
-        def __init__(self, name: str):
-            super().__init__(name="Send Result")
-            self.blackboard = self.attach_blackboard_client(name=self.name)
-            self.blackboard.register_key(
-                key="scan_result",
-                access=py_trees.common.Access.READ
-            )
-
-        def update(self):
-            print(console.green +
-                  "********** Result: {} **********".format(self.blackboard.scan_result) +
-                  console.reset
-                  )
-            return py_trees.common.Status.SUCCESS
-
-    send_result = SendResult(name="Send Result")
-
-    # Fallback task
-    idle = py_trees.behaviours.Running(name="Idle")
-
-    root.add_child(topics2bb)
-    topics2bb.add_children([scan2bb, cancel2bb, battery2bb])
-    root.add_child(tasks)
-    tasks.add_children([battery_emergency, scan, idle])
-    scan.add_children([is_scan_requested, scan_or_die, send_result])
-    scan_or_die.add_children([ere_we_go, die])
-    die.add_children([failed_notification, result_failed_to_bb])
-    failed_notification.add_children([failed_flash_green, failed_pause])
-    ere_we_go.add_children([undock, scan_or_be_cancelled, dock, celebrate])
-    scan_or_be_cancelled.add_children([cancelling, move_out_and_scan])
-    cancelling.add_children([is_cancel_requested, move_home_after_cancel, result_cancelled_to_bb])
-    move_out_and_scan.add_children([move_base, scanning, move_home_after_scan, result_succeeded_to_bb])
-    scanning.add_children([scan_context_switch, scan_rotate, scan_flash_blue])
-    celebrate.add_children([celebrate_flash_green, celebrate_pause])
-    return root
-
-def load_skill(skill) -> py_trees.behaviour.Behaviour:
-    if skill == "NavToRoom":
-        root = create_nav_to_room_bt()
-    elif skill == "OpenDrawer":
-        pass
+def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
+    if skill == "navigation":
+        root = skills.create_nav_to_room_bt()
+    elif skill == "operate_drawer":
+        root = skills.create_action_drawer_bt(param_list)
+    elif skill == "approach_person":
+        root = skills.create_approach_nurse_bt(param_list)
+    elif skill == "authenticate_person":
+        root = skills.create_authenticate_nurse_bt(param_list)
+    elif skill == "wait_message":
+        root = skills.create_wait_message(param_list)
+    elif skill == "send_message":
+        root = skills.create_send_message(param_list)
     elif skill == "SencondBT":
-        root = create_second_bt()
+        root = skills.create_second_bt()
     else:
         root = None
     return root
 
-skill_name = "SencondBT"
+skill_name = "0"
+# skill_name = "SencondBT"
+
+    # ic_corridor = Nodes("IC Corridor", [-37, 15])
+    # ic_room_1 = Nodes("IC Room 1", [-39.44, 33.98, 0.00])
+    # ic_room_2 = Nodes("IC Room 2", [-32.88, 33.95, 3.14])
+    # ic_room_3 = Nodes("IC Room 3", [-40.23, 25.37, 0.00])
+    # ic_room_4 = Nodes("IC Room 4", [-33.90, 18.93, 3.14])
+    # ic_room_5 = Nodes("IC Room 5", [-38.00, 21.50, 0.00])
+    # ic_room_6 = Nodes("IC Room 6", [-38.00, 10.00, 0.00])
+    # pc_corridor = Nodes("PC Corridor", [-19, 16])
+    # pc_room_1 = Nodes("PC Room 1", [-28.50, 18.00,-1.57])
+    # pc_room_2 = Nodes("PC Room 2", [-27.23, 18.00,-1.57])
+    # pc_room_3 = Nodes("PC Room 3", [-21.00, 18.00,-1.57])
+    # pc_room_4 = Nodes("PC Room 4", [-19.00, 18.00,-1.57])
+    # pc_room_5 = Nodes("PC Room 5", [-13.50, 18.00,-1.57])
+    # pc_room_6 = Nodes("PC Room 6", [-11.50, 18,-1.57])
+    # pc_room_7 = Nodes("PC Room 7", [-4, 18,-1.57])
+    # pc_room_8 = Nodes("PC Room 8", [-27.23, 13.00, 1.57])
+    # pc_room_9 = Nodes("PC Room 9", [-26.00, 13.00, 1.57])
+    # pc_room_10 = Nodes("PC Room 10", [-18.00, 13.00, 1.57])
+    # reception = Nodes("Reception", [-1, 20])
+    # pharmacy_corridor = Nodes("Pharmacy Corridor", [0, 8])
+    # pharmacy = Nodes("Pharmacy", [-2, 2.6])
+
+local_plan = [['navigation', ['IC Room 5', [[-38, 23], [-37, 15], [-38, 21.5]]]],
+              ['approach_person', ['nurse']], 
+              ['authenticate_person', ['nurse']], 
+              ['operate_drawer', ['open']], 
+              ['send_message', ['nurse']], 
+              ['wait_message', ['r1']], 
+              ['operate_drawer', ['close']], 
+              ['navigation', ['Pharmacy', [[-38, 21.5], [-37, 15], [-19, 16], [0, 8], [-2, 2.6]]]], 
+              ['approach_robot', ['lab_arm']], 
+              ['operate_drawer', ['open']], 
+              ['send_message', ['lab_arm']], 
+              ['wait_message', ['r1']], 
+              ['operate_drawer', ['close']]]
 
 def get_plan():
     global skill_name
-    if skill_name == "SencondBT":
-        skill_name = "NavToRoom"
-        return "NavToRoom"
-    else:
-        skill_name = "SencondBT"
-        return "SencondBT"
+    # if skill_name == "SencondBT":
+    #     skill_name = "NavToRoom"
+    #     return ("NavToRoom", [])
+    # else:
+    #     skill_name = "SencondBT"
+    #     return ("SencondBT", [])
+
+    # if skill_name == "0":
+    #     skill_name = "1"
+    #     return ("ActionDrawer", ['open'])
+    # elif skill_name == "1":
+    #     skill_name = "2"
+    #     return ("SendMessage", ['Open Drawer', "/nurse/comms"])
+    # elif skill_name == "2":
+    #     skill_name = "3"
+    #     return ("WaitForMessage", ['deposit', "/nurse/action"])
+    # elif skill_name == "3":
+    #     skill_name = "0"
+    #     return ("ActionDrawer", ['close'])
+
+    if skill_name == "0":
+        skill_name = "1"
+        return ("navigation", [])
+    elif skill_name == "1":
+        skill_name = "2"
+        return ("approach_person", ['nurse'])
+    elif skill_name == "2":
+        skill_name = "3"
+        return ("authenticate_person", ['nurse'])
+    # elif skill_name == "2":
+    #     skill_name = "3"
+    #     return ("ActionDrawer", ['open'])
+    # elif skill_name == "3":
+    #     skill_name = "4"
+    #     return ("SendMessage", ['drawer opened', "/nurse/comms", 'deposit', "/nurse/action"])
+    # elif skill_name == "4":
+    #     skill_name = "5"
+    #     return ("SendMessage", ['drawer opened', "/nurse/comms", 'deposit', "/nurse/action"])
+    # elif skill_name == "5":
+    #     skill_name = "6"
+    #     return ("WaitForMessage", ['deposit', "/nurse/action"])
 
 def send_report(status):
     print(status)
+
+
+def logger(snapshot_visitor, behaviour_tree):
+    """
+    A post-tick handler that logs the tree (relevant parts thereof) to a yaml file.
+    """
+    print(console.cyan + "Logging.......................yes\n" + console.reset)
+    if snapshot_visitor.changed:
+        print(console.cyan + "Logging.......................yes\n" + console.reset)
+        tree_serialisation = {
+            'tick': behaviour_tree.count,
+            'nodes': []
+        }
+        for node in behaviour_tree.root.iterate():
+            node_type_str = "Behaviour"
+            for behaviour_type in [py_trees.composites.Sequence,
+                                   py_trees.composites.Selector,
+                                   py_trees.composites.Parallel,
+                                   py_trees.decorators.Decorator]:
+                if isinstance(node, behaviour_type):
+                    node_type_str = behaviour_type.__name__
+            node_snapshot = {
+                'name': node.name,
+                'id': str(node.id),
+                'parent_id': str(node.parent.id) if node.parent else "none",
+                'child_ids': [str(child.id) for child in node.children],
+                'tip_id': str(node.tip().id) if node.tip() else 'none',
+                'class_name': str(node.__module__) + '.' + str(type(node).__name__),
+                'type': node_type_str,
+                'status': node.status.value,
+                'message': node.feedback_message,
+                'is_active': True if node.id in snapshot_visitor.visited else False
+                }
+            tree_serialisation['nodes'].append(node_snapshot)
+        if behaviour_tree.count == 0:
+            with open('dump.json', 'w+') as outfile:
+                json.dump(tree_serialisation, outfile, indent=4)
+                print(tree_serialisation)
+        else:
+            with open('dump.json', 'a') as outfile:
+                json.dump(tree_serialisation, outfile, indent=4)
+                print(tree_serialisation)
+    else:
+        print(console.yellow + "Logging.......................no\n" + console.reset)
+
+def pre_tick_handler(behaviour_tree):
+    print("\n--------- Run %s ---------\n" % behaviour_tree.count)
+
+
+def post_tick_handler(snapshot_visitor, behaviour_tree):
+    print(
+        "\n" + py_trees.display.unicode_tree(
+            root=behaviour_tree.root,
+            visited=snapshot_visitor.visited,
+            previously_visited=snapshot_visitor.previously_visited
+        )
+    )
+    print(py_trees.display.unicode_blackboard())
 
 def tutorial_main():
     """
     Entry point for the demo script.
     """
+    py_trees.logging.level = py_trees.logging.Level.DEBUG
+    print(os.environ['N_ROBOTS'])
+    print(os.environ['ROBOT_NAME_'+str(1)])
     rclpy.init(args=None)
     # root = create_nav_to_room_bt()
-    # root = create_second_bt()
+    root = py_trees.composites.Sequence("Idle")
     suc = py_trees.behaviours.Success(name="Success")
+    root.add_child(suc)
     tree = py_trees_ros.trees.BehaviourTree(
-        root=suc,
+        root=root,
         unicode_tree_debug=True
     )
     tree.root.tick_once()
     try:
+        ####################
+        # Tree Stewardship
+        ####################
+        behaviour_tree = py_trees.trees.BehaviourTree(root)
+        behaviour_tree.add_pre_tick_handler(pre_tick_handler)
+        behaviour_tree.visitors.append(py_trees_ros.visitors.SetupLogger(tree.node))
+        snapshot_visitor = py_trees.visitors.SnapshotVisitor()
+        behaviour_tree.add_post_tick_handler(functools.partial(post_tick_handler, snapshot_visitor))
+        behaviour_tree.visitors.append(snapshot_visitor)
+
         tree.setup(timeout=15)
     except py_trees_ros.exceptions.TimedOutError as e:
         console.logerror(console.red + "failed to setup the tree, aborting [{}]".format(str(e)) + console.reset)
@@ -554,24 +421,36 @@ def tutorial_main():
         rclpy.shutdown()
         sys.exit(1)
 
+
+
+    # blackboard = py_trees.blackboard.Client(name="Global")
     while rclpy.ok():
         try:
             print(tree.root.status)
             if tree.root.status == py_trees.common.Status.SUCCESS:
-                skill = get_plan()
-                root = load_skill(skill)
+                (skill, param_list) = get_plan()
+                root = load_skill(skill, param_list)
                 tree = py_trees_ros.trees.BehaviourTree(
                     root=root,
                     unicode_tree_debug=True
                 )
-            elif tree.root.status == py_trees.common.Status.RUNNING:
-                tree.root.tick_once()
+                # tree.root.setup(node=tree.node)
+                tree.setup(timeout=15)
+                console.logerror(skill)
+                # console.logerror(param_list[0])
                 print(py_trees.display.unicode_tree(root=tree.root))
+                tree.root.tick_once()
+            elif tree.root.status == py_trees.common.Status.RUNNING:
+                print(py_trees.display.unicode_tree(root=tree.root))
+                rclpy.spin_once(tree.node, timeout_sec=0)
+                tree.root.tick_once()
+                # print(blackboard)
                 send_report(tree.root.status)
             else:
                 send_report(tree.root.status)
 
-            rclpy.spin_once(tree.node)
+            # tree.root.tick_once()
+            # rclpy.spin_once(tree.node)
             time.sleep(1)
             # console.logerror("tick")
             # rclpy.spin(tree.node)
