@@ -228,7 +228,7 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
 def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
     sub_root = py_trees.composites.Sequence("Waypoints Subtree")
 
-    param = std_msgs.String(data="Going to x="+str(waypoint[0])+" y="+str(waypoint[1]))
+    param = std_msgs.String(data="Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
