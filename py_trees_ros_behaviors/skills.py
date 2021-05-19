@@ -35,8 +35,8 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
     timer = behaviours.MyTimer(name='Waiting', duration=1.0)
     resp_2bb = py_trees_ros.subscribers.ToBlackboard(
-        name="response2BB_",
-        topic_name="/nurse/action",
+        name="response2BB_"+param_list[0],
+        topic_name="/"+param_list[0]+"/comms",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variables = {'response_msg': 'data'}
@@ -49,12 +49,12 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
         name="Msg OK?",
         check=py_trees.common.ComparisonExpression(
             variable="response_msg",
-            value=param_list[0],
+            value='r1',
             operator=operator.eq
         )
     )
     suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
-    root.add_children([resp_2bb, wait_for_res, is_ok, suc])
+    root.add_children([resp_2bb, wait_for_res, suc])
     return root
 
 def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
@@ -62,8 +62,13 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
     # suc = py_trees.behaviours.Success(name="Success")
     # root.add_children([suc])
-    print(param_list[3])
+    # print(param_list[3])
     param = std_msgs.String(data=param_list[0])
+    topic = "/"+param_list[0]+"/comms"
+    timer1 = behaviours.MyTimer(name='Waiting', duration=1.0)
+    timer2 = behaviours.MyTimer(name='Waiting', duration=1.0)
+    timer3 = behaviours.MyTimer(name='Waiting', duration=1.0)
+    timer4 = behaviours.MyTimer(name='Waiting', duration=1.0)
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -75,23 +80,37 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     )
     publisher1 = py_trees_ros.publishers.FromBlackboard(
         name="Publish",
-        topic_name="/nurse/comms",
+        topic_name=topic,
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         blackboard_variable="param"
     )
     publisher2 = py_trees_ros.publishers.FromBlackboard(
         name="Publish",
-        topic_name="/nurse/comms",
+        topic_name=topic,
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         blackboard_variable="param"
     )
     publisher3 = py_trees_ros.publishers.FromBlackboard(
         name="Publish",
-        topic_name="/nurse/comms",
+        topic_name=topic,
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    publisher4 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name=topic,
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    publisher5 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name=topic,
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         blackboard_variable="param"
     )
     # wait for response
@@ -100,7 +119,7 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     #     name="response2BB_",
     #     topic_name="/nurse/action",
     #     topic_type=std_msgs.String,
-    #     qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+    #     qos_profile=py_trees_ros.utilities.qos_profile_latched(),
     #     blackboard_variables = {'response_msg': 'data'}
     # )
     # wait_for_res = py_trees.behaviours.WaitForBlackboardVariable(
@@ -116,20 +135,24 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     #     )
     # )
     # suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
-    root.add_children([param_to_bb, wait_for_req, publisher1])
+    root.add_children([param_to_bb, wait_for_req, publisher1, timer1, publisher2])#, timer2, publisher3, timer3, publisher4, timer4, publisher5])
     # root.add_children([resp_2bb, wait_for_res, is_ok, suc])
     return root
 
-def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
+def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
 
     # Pseudo Waypoints Path
     # [[-28.5, 18.0, -1.57], [-19, 16], [-37, 15], [-39.44, 33.98, 0.0]]
     # ways = [[-38.0, 23.0, True ],
     #         [-37.0, 15.0, True ],
     #         [-38.0, 21.5, False]]
-    ways = [[-19.00, 16.00, True ],
-            [-37.00, 15.00, True ],
-            [-39.44, 33.98, False ]]
+    for point in ways:
+        if len(point) > 2:
+            point.pop(2)
+            point.append(True)
+        else:
+            point.append(True)
+    ways[-1][2] = False
 
     # root = py_trees.composites.Sequence("NavTo")
     root = py_trees.composites.Parallel(
@@ -148,19 +171,19 @@ def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
     scan2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Scan2BB",
         topic_name='/'+os.environ['ROBOT_NAME']+"/scan",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_scan_button"
     )
     cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Cancel2BB",
         topic_name='/'+os.environ['ROBOT_NAME']+"/cancel",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_cancel_button"
     )
     battery2bb = py_trees_ros.battery.ToBlackboard(
         name="Battery2BB",
         topic_name='/'+os.environ['ROBOT_NAME']+"/battery",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         threshold=30.0
     )
     tasks = py_trees.composites.Selector("Tasks")
@@ -200,7 +223,7 @@ def create_nav_to_room_bt() -> py_trees.behaviour.Behaviour:
     reach_goal.add_children([guard_room, sub_ways])
     guard_room.add_children([is_room_reached, suc])
 
-    return root
+    return sub_ways
 
 def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
     sub_root = py_trees.composites.Sequence("Waypoints Subtree")
@@ -210,18 +233,26 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
         print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
         goal_pose = geometry_msgs.PoseStamped()
         goal_pose.header.frame_id = "map"
-        goal_pose.pose.position = geometry_msgs.Point(x=waypoint[0], y=waypoint[1], z=0.0)
+        timer = behaviours.MyTimer(
+            name="Waiting to Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
+            duration=2.0
+        )
+        goal_pose.pose.position = geometry_msgs.Point(
+            x=float(waypoint[0]), 
+            y=float(waypoint[1]), 
+            z=0.0
+        )
         move_to_somewhere = behaviours.NavToWaypoint(
                 name="Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
                 msg_type=geometry_msgs.PoseStamped,
                 msg_goal=goal_pose,
-                goal_topic_name="/turtlebot1/send_goal",
-                feddback_topic_name="/turtlebot1/mb_feedback",
-                odom_topic_name="/turtlebot1/odom_aux",
+                goal_topic_name="/"+os.environ['ROBOT_NAME']+"/send_goal",
+                feddback_topic_name="/"+os.environ['ROBOT_NAME']+"/mb_feedback",
+                odom_topic_name="/"+os.environ['ROBOT_NAME']+"/odom_aux",
                 colour="red",
                 intermediate_pose=waypoint[2]
         )
-        sub_root.add_child(move_to_somewhere)
+        sub_root.add_children([timer, move_to_somewhere])
         # move_actions.append(move_to_somewhere)
 
     result_succeeded_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -236,7 +267,7 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     # Receive authentication
     # return succeeded
-    root = py_trees.composites.Sequence("Approach Nurse")
+    root = py_trees.composites.Sequence("Authenticate Nurse")
     # Send authentication request
     req_nurse = std_msgs.String(data="nurse")
     req_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -297,7 +328,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
         # publisher = py_trees_ros.publishers.FromBlackboard(
         #     topic_name="/drawer_"+param_list[0],
         #     topic_type=std_msgs.String,
-        #     qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        #     qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         #     blackboard_variable="my_message"
         # )
         # suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
@@ -305,7 +336,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
         
     nurse_pos_2bb = py_trees_ros.subscribers.ToBlackboard(
         name="nursepos2BB",
-        topic_name="/nurse/pose",
+        topic_name="/"+param_list[0]+"/pose",
         topic_type=geometry_msgs.PoseStamped,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variables = {'nurse_pose': None}
@@ -331,13 +362,73 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
         # nursepos2bb = py_trees_ros.subscribers.EventToBlackboard(
         #     name="nursepos2BB",
         #     topic_name="/nurse/pose",
-        #     qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        #     qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         #     variable_name="event_scan_button"
         # )
     # Request nurse position
     # Send position to robot
     # return succeeded
     root.add_children([nurse_pos_2bb, wait_for_data])
+    return root
+
+def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
+    # root = py_trees.behaviours.Success(name="Success")
+    root = py_trees.composites.Sequence("Approach robot")
+    # Request robot position
+        # my_message = std_msgs.String(data=param_list[0])
+        # result_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        #     name="reached_goal 'succeeded'",
+        #     variable_name='my_message',
+        #     variable_value=my_message
+        # )
+        # wait_for_data = py_trees.behaviours.WaitForBlackboardVariable(
+        #     name="WaitForData",
+        #     variable_name="my_message"
+        # )
+        # publisher = py_trees_ros.publishers.FromBlackboard(
+        #     topic_name="/drawer_"+param_list[0],
+        #     topic_type=std_msgs.String,
+        #     qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        #     blackboard_variable="my_message"
+        # )
+        # suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
+        # root.add_children([result_to_bb, wait_for_data, publisher, suc])
+        
+    robot_pos_2bb = py_trees_ros.subscribers.ToBlackboard(
+        name="robotpos2BB",
+        topic_name="/"+param_list[0]+"/pose",
+        topic_type=geometry_msgs.PoseStamped,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variables = {'robot_pose': None}
+    )
+    wait_for_data = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForrobotPos",
+        variable_name="/robot_pose"
+    )
+    # got to robot
+    goal_pose = geometry_msgs.PoseStamped()
+    goal_pose.pose.position = geometry_msgs.Point(x=15.0, y=15.0, z=0.0)
+    move_to_robot = behaviours.NavToFromBB(
+        name="Move To robot",
+        msg_type=geometry_msgs.PoseStamped,
+        blackboard_variable="/robot_pose",
+        goal_topic_name='/'+os.environ['ROBOT_NAME']+"/send_goal",
+        feddback_topic_name='/'+os.environ['ROBOT_NAME']+"/mb_feedback",
+        odom_topic_name='/'+os.environ['ROBOT_NAME']+"/odom_aux",
+        colour="red",
+        intermediate_pose=False
+    )
+
+        # robotpos2bb = py_trees_ros.subscribers.EventToBlackboard(
+        #     name="robotpos2BB",
+        #     topic_name="/robot/pose",
+        #     qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        #     variable_name="event_scan_button"
+        # )
+    # Request nurse position
+    # Send position to robot
+    # return succeeded
+    root.add_children([robot_pos_2bb, wait_for_data])
     return root
 
 def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
@@ -358,7 +449,7 @@ def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
     publisher = py_trees_ros.publishers.FromBlackboard(
         topic_name="/drawer_"+param_list[0],
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         blackboard_variable="my_message"
     )
     suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
@@ -392,19 +483,19 @@ def create_wacther_bt(subtree_to_insert) -> py_trees.behaviour.Behaviour:
     scan2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Scan2BB",
         topic_name="/dashboard/scan",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_scan_button"
     )
     cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Cancel2BB",
         topic_name="/dashboard/cancel",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_cancel_button"
     )
     battery2bb = py_trees_ros.battery.ToBlackboard(
         name="Battery2BB",
         topic_name="/turtlebot1/battery",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         threshold=30.0
     )
     tasks = py_trees.composites.Selector("Tasks")
@@ -467,19 +558,19 @@ def create_second_bt() -> py_trees.behaviour.Behaviour:
     scan2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Scan2BB",
         topic_name="/dashboard/scan",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_scan_button"
     )
     cancel2bb = py_trees_ros.subscribers.EventToBlackboard(
         name="Cancel2BB",
         topic_name="/dashboard/cancel",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         variable_name="event_cancel_button"
     )
     battery2bb = py_trees_ros.battery.ToBlackboard(
         name="Battery2BB",
         topic_name="/turtlebot1/battery",
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
         threshold=30.0
     )
     tasks = py_trees.composites.Selector("Tasks")

@@ -183,6 +183,7 @@ import py_trees_ros_interfaces.action as py_trees_actions  # noqa
 import rclpy
 
 import geometry_msgs.msg as geometry_msgs
+import std_msgs.msg as std_msgs
 
 from . import behaviours
 from . import skills
@@ -219,9 +220,11 @@ def generate_launch_description():
 
 def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
     if skill == "navigation":
-        root = skills.create_nav_to_room_bt()
+        root = skills.create_nav_to_room_bt(param_list)
     elif skill == "operate_drawer":
         root = skills.create_action_drawer_bt(param_list)
+    elif skill == "approach_robot":
+        root = skills.create_approach_robot_bt(param_list)
     elif skill == "approach_person":
         root = skills.create_approach_nurse_bt(param_list)
     elif skill == "authenticate_person":
@@ -261,19 +264,115 @@ skill_name = "0"
     # pharmacy_corridor = Nodes("Pharmacy Corridor", [0, 8])
     # pharmacy = Nodes("Pharmacy", [-2, 2.6])
 
-local_plan = [['navigation', ['IC Room 5', [[-38, 23], [-37, 15], [-38, 21.5]]]],
-              ['approach_person', ['nurse']], 
-              ['authenticate_person', ['nurse']], 
-              ['operate_drawer', ['open']], 
-              ['send_message', ['nurse']], 
-              ['wait_message', ['r1']], 
-              ['operate_drawer', ['close']], 
-              ['navigation', ['Pharmacy', [[-38, 21.5], [-37, 15], [-19, 16], [0, 8], [-2, 2.6]]]], 
-              ['approach_robot', ['lab_arm']], 
-              ['operate_drawer', ['open']], 
-              ['send_message', ['lab_arm']], 
-              ['wait_message', ['r1']], 
-              ['operate_drawer', ['close']]]
+# local_plan = [
+#               # ['navigation', ['IC Room 5', [[-38, 23], [-37, 15], [-38, 21.5]]]],
+#               ['navigation', ['IC Room 5', [[-38, 23], [-28, 16], [-31.4, 16], [-37, 15], [-38, 21.5]]]],
+#               ['approach_person', ['nurse']], 
+#               ['authenticate_person', ['nurse']], 
+#               ['operate_drawer', ['open']], 
+#               ['send_message', ['nurse']], 
+#               ['wait_message', ['r1']], 
+#               ['operate_drawer', ['close']], 
+#               ['navigation', ['Pharmacy', [[-38, 21.5], [-37, 15], [-19, 16], [0, 8], [-2, 2.6]]]], 
+#               ['approach_robot', ['lab_arm']], 
+#               ['operate_drawer', ['open']], 
+#               ['send_message', ['lab_arm']], 
+#               ['wait_message', ['r1']], 
+#               ['operate_drawer', ['close']]
+#              ]
+local_plan = [
+    # ["navigation", ["PC Room 2", [[-28.5, 18.0, -1.57], [-28, 16], [-27.23, 18.0, -1.57]]]],
+    # ["approach_person", ["nurse"]],
+    # ["authenticate_person", ["nurse"]],
+    # ["operate_drawer", ["open"]],
+    # ["send_message", ["nurse"]],
+    # ["wait_message", ["r1"]],
+    # ["operate_drawer", ["close"]],
+    # ["navigation", ["Pharmacy", [[-27.23, 18.0, -1.57], [-28, 16], [-20, 16], [-13, 16], [0, 16], [0, 3], [-2, 2.5]]]],
+    # ["approach_robot", ["lab_arm"]],
+    # ["operate_drawer", ["open"]],
+    # ["send_message", ["lab_arm"]],
+    # ["wait_message", ["r1"]],
+    # ["operate_drawer", ["close"]]
+]
+idx = 0
+def get_local_plan():
+    global local_plan, idx
+    skill = local_plan[idx][0]
+    params = None
+    if skill == "navigation":
+        local_plan[idx][1][1].pop(0)
+        params = local_plan[idx][1][1]
+    else:
+        params = local_plan[idx][1]
+    print(skill)
+    print(params)
+    idx = idx + 1
+    return (skill, params)
+
+def create_init_bt() -> py_trees.behaviour.Behaviour:
+    root = py_trees.composites.Sequence("SendMsg")
+    # timer = py_trees.timers.Timer('Timer', duration=5.0)
+    # suc = py_trees.behaviours.Success(name="Success")
+    # root.add_children([suc])
+    # print(param_list[3])
+    lost_param = std_msgs.String(data="hello")
+    param_to_bb1 = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb ",
+        variable_name='/lost_param',
+        variable_value=lost_param
+    )
+    # hold = create_waypoints_sequence([0, 0])
+    wait_for_lost_param = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/lost_param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publishlost_param",
+        topic_name="/nurse/comms",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="lost_param"
+    )
+    goal_pose = geometry_msgs.PoseStamped()
+    goal_pose.header.frame_id = "base_link"
+    goal_pose.pose.position = geometry_msgs.Point(x=0.0, y=0.0, z=0.0)
+    param_to_bb2 = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb ",
+        variable_name='/goal_pose',
+        variable_value=goal_pose
+    )
+    wait_for_goal_pose = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/goal_pose"
+    )
+    publisher2 = py_trees_ros.publishers.FromBlackboard(
+        name="Publishgoal_pose",
+        topic_name="/"+os.environ['ROBOT_NAME']+"/send_goal",
+        topic_type=geometry_msgs.PoseStamped,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="goal_pose"
+    )
+    regulation = std_msgs.String(data="nurse")
+    req_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="Send authentication request",
+        variable_name='/regulation',
+        variable_value=regulation
+    )
+    wait_for_regulation = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/regulation"
+    )
+    publisher3 = py_trees_ros.publishers.FromBlackboard(
+        name="Publishregulation",
+        topic_name="/led_strip/display",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="regulation"
+    )
+    root.add_children([param_to_bb1, wait_for_lost_param, publisher1, param_to_bb2, wait_for_goal_pose, publisher2, req_to_bb, wait_for_regulation, publisher3])
+    # root.add_children([resp_2bb, wait_for_res, is_ok, suc])
+    return root
 
 def get_plan():
     global skill_name
@@ -384,18 +483,30 @@ def tutorial_main():
     """
     Entry point for the demo script.
     """
+    """
+    get plan
+    """
+    global local_plan
+    console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
+    local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
+    console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
     py_trees.logging.level = py_trees.logging.Level.DEBUG
     print(os.environ['N_ROBOTS'])
     print(os.environ['ROBOT_NAME_'+str(1)])
     rclpy.init(args=None)
     # root = create_nav_to_room_bt()
     root = py_trees.composites.Sequence("Idle")
+    timer = behaviours.MyTimer(name="timer", duration=60.0)
     suc = py_trees.behaviours.Success(name="Success")
-    root.add_child(suc)
+    # root.add_child(suc)
+    root.add_children([timer, suc])
+    # root = create_init_bt()
     tree = py_trees_ros.trees.BehaviourTree(
         root=root,
         unicode_tree_debug=True
     )
+    tree.setup(timeout=15)
+    rclpy.spin_once(tree.node, timeout_sec=0)
     tree.root.tick_once()
     try:
         ####################
@@ -428,7 +539,7 @@ def tutorial_main():
         try:
             print(tree.root.status)
             if tree.root.status == py_trees.common.Status.SUCCESS:
-                (skill, param_list) = get_plan()
+                (skill, param_list) = get_local_plan()
                 root = load_skill(skill, param_list)
                 tree = py_trees_ros.trees.BehaviourTree(
                     root=root,

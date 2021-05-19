@@ -471,7 +471,7 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
         elif self.result_status == "STATUS_SUCCEEDED":
             self.feedback_message = "success"
             return py_trees.common.Status.SUCCESS
-        else:
+        elif self.result_status == "STATUS_FAILURE":
             self.feedback_message = "failure"
             return py_trees.common.Status.FAILURE
             
@@ -498,6 +498,9 @@ class NavToWaypoint(py_trees.behaviour.Behaviour):
         if msg.data == "Done":
             print("Goal achieved")
             self.result_status = "STATUS_SUCCEEDED"
+        if msg.data == "Fail":
+            print("Goal failed")
+            self.result_status = "STATUS_FAILURE"
 
     def _listener_odom(self, msg):
         current_pose = msg.pose.pose
@@ -661,7 +664,7 @@ class NavToFromBB(py_trees.behaviour.Behaviour):
         elif self.result_status == "STATUS_SUCCEEDED":
             self.feedback_message = "success"
             return py_trees.common.Status.SUCCESS
-        else:
+        elif self.result_status == "STATUS_FAILURE":
             self.feedback_message = "failure"
             return py_trees.common.Status.FAILURE
             
@@ -688,6 +691,9 @@ class NavToFromBB(py_trees.behaviour.Behaviour):
         if msg.data == "Done":
             print("Goal achieved")
             self.result_status = "STATUS_SUCCEEDED"
+        if msg.data == "Fail":
+            print("Goal failed")
+            self.result_status = "STATUS_FAILURE"
 
     def _listener_odom(self, msg):
         current_pose = msg.pose.pose
