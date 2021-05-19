@@ -63,12 +63,12 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # suc = py_trees.behaviours.Success(name="Success")
     # root.add_children([suc])
     # print(param_list[3])
-    param = std_msgs.String(data=param_list[0])
     topic = "/"+param_list[0]+"/comms"
     timer1 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer2 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer3 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer4 = behaviours.MyTimer(name='Waiting', duration=1.0)
+    param = std_msgs.String(data=param_list[0])
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -228,6 +228,24 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
 def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
     sub_root = py_trees.composites.Sequence("Waypoints Subtree")
 
+    param = std_msgs.String(data="Going to x="+str(waypoint[0])+" y="+str(waypoint[1]))
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb "+param_list[0],
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    sub_root.add_children([param_to_bb, wait_for_req, publisher1])
     # move_actions = []
     for waypoint in waypoints:
         print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
@@ -268,6 +286,24 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Receive authentication
     # return succeeded
     root = py_trees.composites.Sequence("Authenticate Nurse")
+    param = std_msgs.String(data="Authenticate Nurse")
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb "+param_list[0],
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    root.add_children([param_to_bb, wait_for_req, publisher1])
     # Send authentication request
     req_nurse = std_msgs.String(data="nurse")
     req_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -314,6 +350,25 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
 def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach Nurse")
+
+    param = std_msgs.String(data="Approach Nurse")
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb "+param_list[0],
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    root.add_children([param_to_bb, wait_for_req, publisher1])
     # Request nurse position
         # my_message = std_msgs.String(data=param_list[0])
         # result_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -374,6 +429,24 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
 def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach robot")
+    param = std_msgs.String(data="Approach robot")
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb "+param_list[0],
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    root.add_children([param_to_bb, wait_for_req, publisher1])
     # Request robot position
         # my_message = std_msgs.String(data=param_list[0])
         # result_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -433,6 +506,25 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
 
 def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("ActionDrawer")
+
+    param = std_msgs.String(data="ActionDrawer")
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb "+param_list[0],
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    root.add_children([param_to_bb, wait_for_req, publisher1])
 
     # root = py_trees.composites.Sequence("SendMsg")
     timer = behaviours.MyTimer(name=param_list[0]+'ing', duration=1.0)
