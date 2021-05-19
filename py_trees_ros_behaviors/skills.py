@@ -30,6 +30,25 @@ from . import mock
 
 def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("WaitMsg")
+    # ##################3 log
+    param = std_msgs.String(data="Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
+    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
+        name="param_to_bb ",
+        variable_name='/param',
+        variable_value=param
+    )
+    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParam",
+        variable_name="/param"
+    )
+    publisher1 = py_trees_ros.publishers.FromBlackboard(
+        name="Publish",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        blackboard_variable="param"
+    )
+    sub_root.add_children([param_to_bb, wait_for_req, publisher1])
 
     # root = create_wacther_bt(sub_root)
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
@@ -230,7 +249,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 
     param = std_msgs.String(data="Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb "+param_list[0],
+        name="param_to_bb ",
         variable_name='/param',
         variable_value=param
     )
