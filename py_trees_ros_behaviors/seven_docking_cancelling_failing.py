@@ -204,6 +204,7 @@ def generate_launch_description():
     return launch.LaunchDescription(
         mock.launch.generate_launch_nodes() +
         [
+            launch_ros.actions.SetParameter(name='use_sim_time', value=True),
             launch_ros.actions.Node(
                 package='py_trees_ros_behaviors',
                 executable="tree-docking-cancelling-failing",
@@ -301,7 +302,7 @@ def get_local_plan():
     skill = local_plan[idx][0]
     params = None
     if skill == "navigation":
-        local_plan[idx][1][1].pop(0)
+        local_plan[idx][1][1]
         params = local_plan[idx][1][1]
     else:
         params = local_plan[idx][1]
@@ -532,6 +533,8 @@ def tutorial_main():
         rclpy.shutdown()
         sys.exit(1)
 
+    logpub = rclpy.create_node('pytrees_logger')
+    publisher = logpub.create_publisher(std_msgs.String, '/log', 10)
 
 
     # blackboard = py_trees.blackboard.Client(name="Global")
@@ -545,6 +548,13 @@ def tutorial_main():
                     root=root,
                     unicode_tree_debug=True
                 )
+                msg = std_msgs.String()
+                msg.data = os.environ['ROBOT_NAME']+','+str(logpub.get_clock().now()) +','+str(skill)+','+str(param_list)
+                publisher.publish(msg)
+                def timer_callback():
+                    pass
+                timer_period = 0.5  # seconds
+                timer = logpub.create_timer(timer_period, timer_callback)
                 # tree.root.setup(node=tree.node)
                 tree.setup(timeout=15)
                 console.logerror(skill)
@@ -554,11 +564,18 @@ def tutorial_main():
             elif tree.root.status == py_trees.common.Status.RUNNING:
                 print(py_trees.display.unicode_tree(root=tree.root))
                 rclpy.spin_once(tree.node, timeout_sec=0)
+                rclpy.spin_once(logpub, timeout_sec=0)
                 tree.root.tick_once()
                 # print(blackboard)
                 send_report(tree.root.status)
             else:
                 send_report(tree.root.status)
+                py_trees.common.Status.FAILURE
+                msg.data = "FAILURE"
+                publisher.publish(msg)
+                msg.data = "ENDSIM"
+                publisher.publish(msg)
+                rclpy.spin_once(logpub, timeout_sec=0)
 
             # tree.root.tick_once()
             # rclpy.spin_once(tree.node)
@@ -569,4 +586,6 @@ def tutorial_main():
             pass
 
     tree.shutdown()
+    logpub.destroy_timer(timer)
+    logpub.destroy_node()
     rclpy.shutdown()

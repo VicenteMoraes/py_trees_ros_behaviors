@@ -8,6 +8,7 @@ import operator
 import os
 import sys
 import time
+import math
 import functools
 
 import launch
@@ -20,9 +21,33 @@ import rclpy
 
 import geometry_msgs.msg as geometry_msgs
 import std_msgs.msg as std_msgs
+# import tf_conversions
+# import tf2_ros.tf_conversions
+
 
 from . import behaviours
 from . import mock
+
+def quaternion_from_euler(roll, pitch, yaw):
+    """
+    Converts euler roll, pitch, yaw to quaternion (w in last place)
+    quat = [x, y, z, w]
+    Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
+    """
+    cy = math.cos(yaw * 0.5)
+    sy = math.sin(yaw * 0.5)
+    cp = math.cos(pitch * 0.5)
+    sp = math.sin(pitch * 0.5)
+    cr = math.cos(roll * 0.5)
+    sr = math.sin(roll * 0.5)
+
+    q = [0] * 4
+    q[0] = cy * cp * cr + sy * sp * sr
+    q[1] = cy * cp * sr - sy * sp * cr
+    q[2] = sy * cp * sr + cy * sp * cr
+    q[3] = sy * cp * cr - cy * sp * sr
+
+    return q
 
 ##############################################################################
 # Skills
@@ -31,7 +56,8 @@ from . import mock
 def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("WaitMsg")
     # ##################3 log
-    param = std_msgs.String(data="Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
+    os.environ['ROBOT_NAME']
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",create_wait_message triggered")
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb ",
         variable_name='/param',
@@ -45,10 +71,10 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
-    sub_root.add_children([param_to_bb, wait_for_req, publisher1])
+    root.add_children([param_to_bb, wait_for_req, publisher1])
 
     # root = create_wacther_bt(sub_root)
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
@@ -87,7 +113,7 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     timer2 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer3 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer4 = behaviours.MyTimer(name='Waiting', duration=1.0)
-    param = std_msgs.String(data=param_list[0])
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",create_send_message")
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -154,7 +180,7 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     #     )
     # )
     # suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
-    root.add_children([param_to_bb, wait_for_req, publisher1, timer1, publisher2])#, timer2, publisher3, timer3, publisher4, timer4, publisher5])
+    root.add_children([param_to_bb, wait_for_req, publisher1, timer1, publisher2, timer2, publisher3, timer3, publisher4, timer4, publisher5])
     # root.add_children([resp_2bb, wait_for_res, is_ok, suc])
     return root
 
@@ -165,13 +191,22 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
     # ways = [[-38.0, 23.0, True ],
     #         [-37.0, 15.0, True ],
     #         [-38.0, 21.5, False]]
-    for point in ways:
-        if len(point) > 2:
-            point.pop(2)
-            point.append(True)
+    # for i in range(0, len(ways)-1):
+    #     ways[i].append(yaw)
+    for i in range(1, len(ways)):
+        yaw = math.atan2( (ways[i][1] - ways[i-1][1]) , (ways[i][0] - ways[i-1][0]))
+        # aux = 0
+        if len(ways[i]) > 2:
+            # aux = ways[i].pop(2)
+            # ways[i].append(aux)
+            ways[i].append(True)
         else:
-            point.append(True)
-    ways[-1][2] = False
+            ways[i].append(yaw)
+            ways[i].append(True)
+    if len(ways[-1]) > 2:
+        ways[-1][3] = False
+    else:
+        ways[-1].append(False)
 
     # root = py_trees.composites.Sequence("NavTo")
     root = py_trees.composites.Parallel(
@@ -245,9 +280,12 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
     return sub_ways
 
 def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
+    waypoints.pop(0) # pop robot's initial position
     sub_root = py_trees.composites.Sequence("Waypoints Subtree")
 
-    param = std_msgs.String(data="Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
+    print(waypoints)
+    print("Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",nav to ("+str(waypoints[-1][0])+";"+str(waypoints[-1][1])+')')
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb ",
         variable_name='/param',
@@ -261,7 +299,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
     sub_root.add_children([param_to_bb, wait_for_req, publisher1])
@@ -274,6 +312,11 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
             name="Waiting to Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
             duration=2.0
         )
+        q = quaternion_from_euler(0, 0, waypoint[2])
+        goal_pose.pose.orientation.w = q[0]
+        goal_pose.pose.orientation.x = q[1]
+        goal_pose.pose.orientation.y = q[2]
+        goal_pose.pose.orientation.z = q[3]
         goal_pose.pose.position = geometry_msgs.Point(
             x=float(waypoint[0]), 
             y=float(waypoint[1]), 
@@ -287,7 +330,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
                 feddback_topic_name="/"+os.environ['ROBOT_NAME']+"/mb_feedback",
                 odom_topic_name="/"+os.environ['ROBOT_NAME']+"/odom_aux",
                 colour="red",
-                intermediate_pose=waypoint[2]
+                intermediate_pose=waypoint[3]
         )
         sub_root.add_children([timer, move_to_somewhere])
         # move_actions.append(move_to_somewhere)
@@ -305,7 +348,7 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Receive authentication
     # return succeeded
     root = py_trees.composites.Sequence("Authenticate Nurse")
-    param = std_msgs.String(data="Authenticate Nurse")
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Authenticate Nurse")
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -319,7 +362,7 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
     root.add_children([param_to_bb, wait_for_req, publisher1])
@@ -370,7 +413,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach Nurse")
 
-    param = std_msgs.String(data="Approach Nurse")
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Approach Nurse")
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -384,7 +427,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
     root.add_children([param_to_bb, wait_for_req, publisher1])
@@ -448,7 +491,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
 def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach robot")
-    param = std_msgs.String(data="Approach robot")
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Approach robot")
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -462,7 +505,7 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
     root.add_children([param_to_bb, wait_for_req, publisher1])
@@ -526,7 +569,7 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
 def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("ActionDrawer")
 
-    param = std_msgs.String(data="ActionDrawer")
+    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",ActionDrawer "+param_list[0])
     param_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="param_to_bb "+param_list[0],
         variable_name='/param',
@@ -540,7 +583,7 @@ def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
         name="Publish",
         topic_name="/log",
         topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_latched(),
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
     root.add_children([param_to_bb, wait_for_req, publisher1])
