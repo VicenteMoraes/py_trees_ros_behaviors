@@ -28,6 +28,15 @@ import std_msgs.msg as std_msgs
 from . import behaviours
 from . import mock
 
+# func utils
+def formatlog(severity, who, loginfo, skill, params):
+    global simulation_init_time
+    return ('['+severity+'],'+
+               who+','+
+               loginfo+','+
+               skill+','+
+               params)
+
 def quaternion_from_euler(roll, pitch, yaw):
     """
     Converts euler roll, pitch, yaw to quaternion (w in last place)
@@ -55,27 +64,6 @@ def quaternion_from_euler(roll, pitch, yaw):
 
 def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("WaitMsg")
-    # ##################3 log
-    os.environ['ROBOT_NAME']
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",create_wait_message triggered")
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb ",
-        variable_name='/param',
-        variable_value=param
-    )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
-        variable_name="/param"
-    )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
-        topic_name="/log",
-        topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        blackboard_variable="param"
-    )
-    root.add_children([param_to_bb, wait_for_req, publisher1])
-
     # root = create_wacther_bt(sub_root)
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
     timer = behaviours.MyTimer(name='Waiting', duration=1.0)
@@ -100,6 +88,29 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     )
     suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
     root.add_children([resp_2bb, wait_for_res, suc])
+    str_data = formatlog('info',
+            os.environ['ROBOT_NAME'],
+            'sync',
+            'wait-message',
+            '(status=message-received)')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
+        variable_name='/param',
+        variable_value=param
+    )
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
+        variable_name="/param"
+    )
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="param"
+    )
+    root.add_children([log_param, log_wait, log_pub])
     return root
 
 def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
@@ -108,6 +119,31 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # suc = py_trees.behaviours.Success(name="Success")
     # root.add_children([suc])
     # print(param_list[3])
+    str_data = formatlog('info',
+            os.environ['ROBOT_NAME'],
+            'sync',
+            'send-message',
+            '(to='+param_list[0]+')')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
+        variable_name='/param',
+        variable_value=param
+    )
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
+        variable_name="/param"
+    )
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="param"
+    )
+    root.add_children([log_param, log_wait, log_pub])
+
+
     topic = "/"+param_list[0]+"/comms"
     timer1 = behaviours.MyTimer(name='Waiting', duration=1.0)
     timer2 = behaviours.MyTimer(name='Waiting', duration=1.0)
@@ -285,27 +321,11 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
 
     print(waypoints)
     print("Going to x="+str(waypoints[-1][0])+" y="+str(waypoints[-1][1]))
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",nav to ("+str(waypoints[-1][0])+";"+str(waypoints[-1][1])+')')
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb ",
-        variable_name='/param',
-        variable_value=param
-    )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
-        variable_name="/param"
-    )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
-        topic_name="/log",
-        topic_type=std_msgs.String,
-        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
-        blackboard_variable="param"
-    )
-    sub_root.add_children([param_to_bb, wait_for_req, publisher1])
+    
     # move_actions = []
     for waypoint in waypoints:
         print("Adding: moving to x="+str(waypoint[0])+" y="+str(waypoint[1]))
+        # TASK
         goal_pose = geometry_msgs.PoseStamped()
         goal_pose.header.frame_id = "map"
         timer = behaviours.MyTimer(
@@ -333,7 +353,31 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
                 intermediate_pose=waypoint[3]
         )
         sub_root.add_children([timer, move_to_somewhere])
-        # move_actions.append(move_to_somewhere)
+        # TASK UPDATE [LOG]
+        percentage = float(waypoints.index(waypoint)+1)/len(waypoints)
+        str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'navigation',
+            'way-point-reached,'+str(percentage*100)+'%')
+        param = std_msgs.String(data=str_data)
+        log_param = py_trees.behaviours.SetBlackboardVariable(
+            name="ParamToBbLog",
+            variable_name='/param',
+            variable_value=param
+        )
+        log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+            name="WaitForParamLog",
+            variable_name="/param"
+        )
+        log_pub = py_trees_ros.publishers.FromBlackboard(
+            name="PublishLog",
+            topic_name="/log",
+            topic_type=std_msgs.String,
+            qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+            blackboard_variable="param"
+        )
+        sub_root.add_children([log_param, log_wait, log_pub])
 
     result_succeeded_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="reached_goal 'succeeded'",
@@ -348,25 +392,31 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Receive authentication
     # return succeeded
     root = py_trees.composites.Sequence("Authenticate Nurse")
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Authenticate Nurse")
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb "+param_list[0],
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'authenticate_person',
+            'request-authentication,(to=nurse)')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
         variable_name='/param',
         variable_value=param
     )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
         variable_name="/param"
     )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
         topic_name="/log",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
-    root.add_children([param_to_bb, wait_for_req, publisher1])
-    # Send authentication request
+    root.add_children([log_param, log_wait, log_pub])
+    # Request nurse position
+    # log authentication request
     req_nurse = std_msgs.String(data="nurse")
     req_to_bb = py_trees.behaviours.SetBlackboardVariable(
         name="Send authentication request",
@@ -403,34 +453,61 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             operator=operator.eq
         )
     )
-    # Request nurse position
     # Send position to robot
-    # return succeeded
     root.add_children([req_to_bb, wait_for_req, publisher, nurse_resp_2bb, wait_for_res, is_authenticated])
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'authenticate_person',
+            'received-authentication,(from=nurse)')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
+        variable_name='/param',
+        variable_value=param
+    )
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
+        variable_name="/param"
+    )
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="param"
+    )
+    root.add_children([log_param, log_wait, log_pub])
+    # return succeeded
     return root
 
 def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach Nurse")
 
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Approach Nurse")
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb "+param_list[0],
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'approach_person',
+            'localize-person,(who=nurse)')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
         variable_name='/param',
         variable_value=param
     )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
         variable_name="/param"
     )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
         topic_name="/log",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
-    root.add_children([param_to_bb, wait_for_req, publisher1])
+    root.add_children([log_param, log_wait, log_pub])
     # Request nurse position
         # my_message = std_msgs.String(data=param_list[0])
         # result_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -486,29 +563,57 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Send position to robot
     # return succeeded
     root.add_children([nurse_pos_2bb, wait_for_data])
-    return root
-
-def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
-    # root = py_trees.behaviours.Success(name="Success")
-    root = py_trees.composites.Sequence("Approach robot")
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",Approach robot")
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb "+param_list[0],
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'approach_person',
+            'goto-person,(who=nurse)')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
         variable_name='/param',
         variable_value=param
     )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
         variable_name="/param"
     )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
         topic_name="/log",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
-    root.add_children([param_to_bb, wait_for_req, publisher1])
+    root.add_children([log_param, log_wait, log_pub])
+    return root
+
+def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
+    # root = py_trees.behaviours.Success(name="Success")
+    root = py_trees.composites.Sequence("Approach robot")
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'approach_robot',
+            'localize-robot,(who='+param_list[0]+')')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
+        variable_name='/param',
+        variable_value=param
+    )
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
+        variable_name="/param"
+    )
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="param"
+    )
+    root.add_children([log_param, log_wait, log_pub])
     # Request robot position
         # my_message = std_msgs.String(data=param_list[0])
         # result_to_bb = py_trees.behaviours.SetBlackboardVariable(
@@ -564,29 +669,56 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Send position to robot
     # return succeeded
     root.add_children([robot_pos_2bb, wait_for_data])
-    return root
-
-def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
-    root = py_trees.composites.Sequence("ActionDrawer")
-
-    param = std_msgs.String(data=os.environ['ROBOT_NAME']+",time ros unavailable"+",ActionDrawer "+param_list[0])
-    param_to_bb = py_trees.behaviours.SetBlackboardVariable(
-        name="param_to_bb "+param_list[0],
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'approach_robot',
+            'goto-robot,(who='+param_list[0]+')')
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
         variable_name='/param',
         variable_value=param
     )
-    wait_for_req = py_trees.behaviours.WaitForBlackboardVariable(
-        name="WaitForParam",
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
         variable_name="/param"
     )
-    publisher1 = py_trees_ros.publishers.FromBlackboard(
-        name="Publish",
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
         topic_name="/log",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variable="param"
     )
-    root.add_children([param_to_bb, wait_for_req, publisher1])
+    root.add_children([log_param, log_wait, log_pub])
+    return root
+
+def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
+    root = py_trees.composites.Sequence("ActionDrawer")
+    str_data = formatlog('debug',
+            os.environ['ROBOT_NAME'],
+            'task-update',
+            'operate_drawer',
+            param_list[0])
+    param = std_msgs.String(data=str_data)
+    log_param = py_trees.behaviours.SetBlackboardVariable(
+        name="ParamToBbLog",
+        variable_name='/param',
+        variable_value=param
+    )
+    log_wait = py_trees.behaviours.WaitForBlackboardVariable(
+        name="WaitForParamLog",
+        variable_name="/param"
+    )
+    log_pub = py_trees_ros.publishers.FromBlackboard(
+        name="PublishLog",
+        topic_name="/log",
+        topic_type=std_msgs.String,
+        qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
+        blackboard_variable="param"
+    )
+    root.add_children([log_param, log_wait, log_pub])
 
     # root = py_trees.composites.Sequence("SendMsg")
     timer = behaviours.MyTimer(name=param_list[0]+'ing', duration=1.0)
