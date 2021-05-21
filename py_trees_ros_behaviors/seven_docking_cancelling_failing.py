@@ -588,7 +588,7 @@ def tutorial_main():
                 rclpy.spin_once(logpub, timeout_sec=0)
                 tree.root.tick_once()
                 # print(blackboard)
-                send_report(tree.root.status, skill, param_list)
+                # send_report(tree.root.status, skill, param_list)
             else:
                 send_report(tree.roo, skill, param_listt.status, skill, param_list)
                 msg.data = "FAILURE"
