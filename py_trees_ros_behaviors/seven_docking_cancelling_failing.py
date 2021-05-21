@@ -550,7 +550,8 @@ def tutorial_main():
 
     logpub = rclpy.create_node('pytrees_logger')
     publisher = logpub.create_publisher(std_msgs.String, '/log', 10)
-
+    skill = "init_robobt"
+    param_list = []
 
     # blackboard = py_trees.blackboard.Client(name="Global")
     while rclpy.ok():
