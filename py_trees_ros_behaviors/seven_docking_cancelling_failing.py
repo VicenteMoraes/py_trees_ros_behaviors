@@ -590,7 +590,7 @@ def tutorial_main():
                 # print(blackboard)
                 # send_report(tree.root.status, skill, param_list)
             else:
-                send_report(tree.roo, skill, param_listt.status, skill, param_list)
+                send_report(tree.root.status, skill, param_list)
                 msg.data = "FAILURE"
                 publisher.publish(msg)
                 msg.data = "ENDSIM"
