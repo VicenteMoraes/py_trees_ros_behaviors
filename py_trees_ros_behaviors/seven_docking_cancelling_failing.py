@@ -281,6 +281,12 @@ skill_name = "0"
 #               ['wait_message', ['r1']], 
 #               ['operate_drawer', ['close']]
 #              ]
+def formatlog(severity, who, loginfo, skill, params):
+    return ('['+severity+'],'+
+               who+','+
+               loginfo+','+
+               skill+','+
+               params)
 local_plan = [
     # ["navigation", ["PC Room 2", [[-28.5, 18.0, -1.57], [-28, 16], [-27.23, 18.0, -1.57]]]],
     # ["approach_person", ["nurse"]],
@@ -296,6 +302,8 @@ local_plan = [
     # ["wait_message", ["r1"]],
     # ["operate_drawer", ["close"]]
 ]
+logpub = None
+publisher = None
 idx = 0
 def get_local_plan():
     global local_plan, idx
@@ -419,7 +427,14 @@ def get_plan():
     #     skill_name = "6"
     #     return ("WaitForMessage", ['deposit', "/nurse/action"])
 
-def send_report(status):
+def send_report(status, skill, param_list):
+    msg = std_msgs.String()
+    msg.data = formatlog('info',
+        os.environ['ROBOT_NAME'],
+        'skill-life-cycle',
+        str(skill),
+        '(status='+str(status)+', parameters='+str(param_list)+')')
+    publisher.publish(msg)
     print(status)
 
 
@@ -487,7 +502,7 @@ def tutorial_main():
     """
     get plan
     """
-    global local_plan
+    global local_plan, logpub, publisher
     console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
     local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
     console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
@@ -549,7 +564,12 @@ def tutorial_main():
                     unicode_tree_debug=True
                 )
                 msg = std_msgs.String()
-                msg.data = os.environ['ROBOT_NAME']+','+str(logpub.get_clock().now()) +','+str(skill)+','+str(param_list)
+                # msg.data = os.environ['ROBOT_NAME']+','+str(logpub.get_clock().now()) +','+str(skill)+','+str(param_list)
+                msg.data = formatlog('info',
+                    os.environ['ROBOT_NAME'],
+                    'skill-life-cycle',
+                    str(skill),
+                    '(status=STARTED'+', parameters='+str(param_list)+')')
                 publisher.publish(msg)
                 def timer_callback():
                     pass
@@ -567,10 +587,9 @@ def tutorial_main():
                 rclpy.spin_once(logpub, timeout_sec=0)
                 tree.root.tick_once()
                 # print(blackboard)
-                send_report(tree.root.status)
+                send_report(tree.root.status, skill, param_list)
             else:
-                send_report(tree.root.status)
-                py_trees.common.Status.FAILURE
+                send_report(tree.roo, skill, param_listt.status, skill, param_list)
                 msg.data = "FAILURE"
                 publisher.publish(msg)
                 msg.data = "ENDSIM"
