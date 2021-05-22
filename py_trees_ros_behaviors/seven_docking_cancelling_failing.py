@@ -554,6 +554,7 @@ def tutorial_main():
     param_list = []
 
     # blackboard = py_trees.blackboard.Client(name="Global")
+    count = 0
     while rclpy.ok():
         try:
             print(tree.root.status)
@@ -565,7 +566,6 @@ def tutorial_main():
                     unicode_tree_debug=True
                 )
                 msg = std_msgs.String()
-                # msg.data = os.environ['ROBOT_NAME']+','+str(logpub.get_clock().now()) +','+str(skill)+','+str(param_list)
                 msg.data = formatlog('info',
                     os.environ['ROBOT_NAME'],
                     'skill-life-cycle',
@@ -589,12 +589,21 @@ def tutorial_main():
                 tree.root.tick_once()
                 # print(blackboard)
                 # send_report(tree.root.status, skill, param_list)
+                if count == 0:
+                    msg = std_msgs.String()
+                    msg.data = formatlog('info',
+                        os.environ['ROBOT_NAME'],
+                        'skill-life-cycle',
+                        str(skill),
+                        '(status=RUNNING'+', parameters='+str(param_list)+')')
+                    publisher.publish(msg)
+                count = (count+1)%60
             else:
                 send_report(tree.root.status, skill, param_list)
                 msg.data = "FAILURE"
                 publisher.publish(msg)
-                msg.data = "ENDSIM"
-                publisher.publish(msg)
+                # msg.data = "ENDSIM"
+                # publisher.publish(msg)
                 rclpy.spin_once(logpub, timeout_sec=0)
 
             # tree.root.tick_once()
