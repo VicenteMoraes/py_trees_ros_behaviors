@@ -288,14 +288,14 @@ def formatlog(severity, who, loginfo, skill, params):
                skill+','+
                params)
 local_plan = [
-    # ["navigation", ["PC Room 2", [[-28.5, 18.0, -1.57], [-28, 16], [-27.23, 18.0, -1.57]]]],
+    # ["navigation", ["PC Room 7", [[-19.0, 18.0, -1.57], [-19.0, 16.0], [-18.0, 16.0], [-13.5, 16.0], [-13.5, 18.0, -1.57]]]],
     # ["approach_person", ["nurse"]],
     # ["authenticate_person", ["nurse"]],
     # ["operate_drawer", ["open"]],
     # ["send_message", ["nurse"]],
     # ["wait_message", ["r1"]],
     # ["operate_drawer", ["close"]],
-    # ["navigation", ["Pharmacy", [[-27.23, 18.0, -1.57], [-28, 16], [-20, 16], [-13, 16], [0, 16], [0, 3], [-2, 2.5]]]],
+    # ["navigation", ["Laboratory", [[-13.5, 18.0, -1.57], [-13.5, 16.0], [-18.0, 16.0], [-19.0, 16.0], [-21.0, 16.0], [-26.0, 16.0], [-26.0, 13.0, 1.57]]]],
     # ["approach_robot", ["lab_arm"]],
     # ["operate_drawer", ["open"]],
     # ["send_message", ["lab_arm"]],
@@ -512,7 +512,7 @@ def tutorial_main():
     rclpy.init(args=None)
     # root = create_nav_to_room_bt()
     root = py_trees.composites.Sequence("Idle")
-    timer = behaviours.MyTimer(name="timer", duration=60.0)
+    timer = behaviours.MyTimer(name="timer", duration=30.0)
     suc = py_trees.behaviours.Success(name="Success")
     # root.add_child(suc)
     root.add_children([timer, suc])
