@@ -597,7 +597,7 @@ def tutorial_main():
                         str(skill),
                         '(status=RUNNING'+', parameters='+str(param_list)+')')
                     publisher.publish(msg)
-                count = (count+1)%60
+                count = (count+1)%300
             else:
                 send_report(tree.root.status, skill, param_list)
                 msg.data = "FAILURE"
@@ -608,7 +608,7 @@ def tutorial_main():
 
             # tree.root.tick_once()
             # rclpy.spin_once(tree.node)
-            time.sleep(1)
+            time.sleep(0.2)
             # console.logerror("tick")
             # rclpy.spin(tree.node)
         except KeyboardInterrupt:
