@@ -329,7 +329,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
         goal_pose.header.frame_id = "map"
         timer = behaviours.MyTimer(
             name="Waiting to Move To x="+str(waypoint[0])+" y="+str(waypoint[1]),
-            duration=2.0
+            duration=5.0
         )
         q = quaternion_from_euler(0, 0, waypoint[2])
         goal_pose.pose.orientation.w = q[0]
