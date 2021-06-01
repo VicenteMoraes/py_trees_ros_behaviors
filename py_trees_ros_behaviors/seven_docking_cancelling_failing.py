@@ -583,12 +583,13 @@ def tutorial_main():
                 print(py_trees.display.unicode_tree(root=tree.root))
                 tree.root.tick_once()
             elif tree.root.status == py_trees.common.Status.RUNNING:
-                print(py_trees.display.unicode_tree(root=tree.root))
                 rclpy.spin_once(tree.node, timeout_sec=0)
                 rclpy.spin_once(logpub, timeout_sec=0)
                 tree.root.tick_once()
                 # print(blackboard)
                 # send_report(tree.root.status, skill, param_list)
+                if count%10 == 0:
+                    print(py_trees.display.unicode_tree(root=tree.root))
                 if count == 0:
                     msg = std_msgs.String()
                     msg.data = formatlog('info',
@@ -597,7 +598,7 @@ def tutorial_main():
                         str(skill),
                         '(status=RUNNING'+', parameters='+str(param_list)+')')
                     publisher.publish(msg)
-                count = (count+1)%300
+                count = (count+1)%600
             else:
                 send_report(tree.root.status, skill, param_list)
                 msg.data = "FAILURE"
