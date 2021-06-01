@@ -228,8 +228,8 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
     #         [-38.0, 21.5, False]]
     # for i in range(0, len(ways)-1):
     #     ways[i].append(yaw)
-    for i in range(1, len(ways)):
-        yaw = math.atan2( (ways[i][1] - ways[i-1][1]) , (ways[i][0] - ways[i-1][0]))
+    for i in range(0, len(ways)-1):
+        yaw = math.atan2( (ways[i+1][1] - ways[i][1]) , (ways[i+1][0] - ways[i][0]))
         # aux = 0
         if len(ways[i]) > 2:
             # aux = ways[i].pop(2)
@@ -238,7 +238,7 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
         else:
             ways[i].append(yaw)
             ways[i].append(True)
-    if len(ways[-1]) > 2:
+    if len(ways[-1]) > 3:
         ways[-1][3] = False
     else:
         ways[-1].append(False)
