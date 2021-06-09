@@ -311,15 +311,15 @@ available_skills = ["send_message", "wait_message"]
 def get_local_plan():
     global local_plan, idx, available_skills
     skill = local_plan[idx][0]
+    params = None
+    if skill == "navigation":
+        local_plan[idx][1][1]
+        params = local_plan[idx][1][1]
+    else:
+        params = local_plan[idx][1]
+    print(skill)
+    print(params)
     if skill in available_skills:
-        params = None
-        if skill == "navigation":
-            local_plan[idx][1][1]
-            params = local_plan[idx][1][1]
-        else:
-            params = local_plan[idx][1]
-        print(skill)
-        print(params)
         idx = idx + 1
         return (skill, params)
     elif os.environ['ROBOT_NAME'] == os.environ['CHOSE_ROBOT']:
