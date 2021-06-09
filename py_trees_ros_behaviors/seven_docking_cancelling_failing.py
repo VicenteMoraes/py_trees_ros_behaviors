@@ -512,7 +512,7 @@ def tutorial_main():
     """
     global local_plan, logpub, publisher, available_skills
     console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
-    available_skills.append(json.loads(os.environ['ROBOT_CONFIG'])["skills"])
+    available_skills = available_skills + json.loads(os.environ['ROBOT_CONFIG'])["skills"]
     local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
     console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
     py_trees.logging.level = py_trees.logging.Level.DEBUG
@@ -570,9 +570,10 @@ def tutorial_main():
             if tree.root.status == py_trees.common.Status.SUCCESS:
                 (skill, param_list) = get_local_plan()
                 root = load_skill(skill, param_list)
-                if root == None:
-                    print("Closing Robot "+os.environ['ROBOT_NAME']+" BT")
-                    break
+                print(available_skills)
+                # if root == None:
+                #     print("Closing Robot "+os.environ['ROBOT_NAME']+" BT")
+                    # break
                 tree = py_trees_ros.trees.BehaviourTree(
                     root=root,
                     unicode_tree_debug=True
