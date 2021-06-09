@@ -307,7 +307,7 @@ local_plan = [
 logpub = None
 publisher = None
 idx = 0
-available_skills = []
+available_skills = ["send_message", "wait_message"]
 def get_local_plan():
     global local_plan, idx, available_skills
     skill = local_plan[idx][0]
@@ -510,7 +510,7 @@ def tutorial_main():
     """
     global local_plan, logpub, publisher, available_skills
     console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
-    available_skills = json.loads(os.environ['ROBOT_CONFIG'])["skills"]
+    available_skills.append(json.loads(os.environ['ROBOT_CONFIG'])["skills"])
     local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
     console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
     py_trees.logging.level = py_trees.logging.Level.DEBUG
