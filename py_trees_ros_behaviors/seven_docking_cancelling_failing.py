@@ -237,7 +237,7 @@ def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
     elif skill == "SencondBT":
         root = skills.create_second_bt()
     elif skill == "fail":
-        root = skills.going_to_fail()
+        root = skills.going_to_fail(param_list)
     else:
         root = None
     return root
