@@ -219,6 +219,13 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # root.add_children([resp_2bb, wait_for_res, is_ok, suc])
     return root
 
+def going_to_fail(params) -> py_trees.behaviour.Behaviour:
+    root = py_trees.composites.Sequence("Idle")
+    timer = behaviours.MyTimer(name="timer", duration=2.0)
+    fail = py_trees.behaviours.Failure(name='Failure')
+    root.add_children([timer, fail])
+    return root
+
 def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
 
     # Pseudo Waypoints Path

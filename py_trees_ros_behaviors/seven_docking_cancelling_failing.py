@@ -236,6 +236,8 @@ def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
         root = skills.create_send_message(param_list)
     elif skill == "SencondBT":
         root = skills.create_second_bt()
+    elif skill == "fail":
+        root = skills.going_to_fail()
     else:
         root = None
     return root
@@ -305,19 +307,23 @@ local_plan = [
 logpub = None
 publisher = None
 idx = 0
+available_skills = []
 def get_local_plan():
-    global local_plan, idx
+    global local_plan, idx, available_skills
     skill = local_plan[idx][0]
-    params = None
-    if skill == "navigation":
-        local_plan[idx][1][1]
-        params = local_plan[idx][1][1]
+    if skill in available_skills:
+        params = None
+        if skill == "navigation":
+            local_plan[idx][1][1]
+            params = local_plan[idx][1][1]
+        else:
+            params = local_plan[idx][1]
+        print(skill)
+        print(params)
+        idx = idx + 1
+        return (skill, params)
     else:
-        params = local_plan[idx][1]
-    print(skill)
-    print(params)
-    idx = idx + 1
-    return (skill, params)
+        return ("fail", [])
 
 def create_init_bt() -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("SendMsg")
@@ -502,8 +508,9 @@ def tutorial_main():
     """
     get plan
     """
-    global local_plan, logpub, publisher
+    global local_plan, logpub, publisher, available_skills
     console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
+    available_skills = json.loads(os.environ['ROBOT_CONFIG'])["skills"]
     local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
     console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
     py_trees.logging.level = py_trees.logging.Level.DEBUG
