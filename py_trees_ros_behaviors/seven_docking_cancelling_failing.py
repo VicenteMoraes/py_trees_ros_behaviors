@@ -570,6 +570,13 @@ def tutorial_main():
             if tree.root.status == py_trees.common.Status.SUCCESS:
                 (skill, param_list) = get_local_plan()
                 root = load_skill(skill, param_list)
+                msg = std_msgs.String()
+                msg.data = formatlog('debug',
+                        os.environ['ROBOT_NAME'],
+                        'available-skills',
+                        str(available_skills),
+                        '')
+                publisher.publish(msg)
                 print(available_skills)
                 # if root == None:
                 #     print("Closing Robot "+os.environ['ROBOT_NAME']+" BT")
@@ -578,7 +585,6 @@ def tutorial_main():
                     root=root,
                     unicode_tree_debug=True
                 )
-                msg = std_msgs.String()
                 msg.data = formatlog('info',
                     os.environ['ROBOT_NAME'],
                     'skill-life-cycle',
