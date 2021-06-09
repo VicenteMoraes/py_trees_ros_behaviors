@@ -322,8 +322,10 @@ def get_local_plan():
         print(params)
         idx = idx + 1
         return (skill, params)
-    else:
+    elif os.environ['ROBOT_NAME'] == os.environ['CHOSE_ROBOT']:
         return ("fail", [])
+    else:
+        return (None, [])
 
 def create_init_bt() -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("SendMsg")
@@ -568,6 +570,9 @@ def tutorial_main():
             if tree.root.status == py_trees.common.Status.SUCCESS:
                 (skill, param_list) = get_local_plan()
                 root = load_skill(skill, param_list)
+                if root == None:
+                    print("Closing Robot "+os.environ['ROBOT_NAME']+" BT")
+                    break
                 tree = py_trees_ros.trees.BehaviourTree(
                     root=root,
                     unicode_tree_debug=True
