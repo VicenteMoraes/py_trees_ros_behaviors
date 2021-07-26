@@ -284,23 +284,25 @@ local_plan = [
 logpub = None
 publisher = None
 idx = 0
-available_skills = []
+available_skills = ["send_message", "wait_message"]
 def get_local_plan():
     global local_plan, idx, available_skills
     skill = local_plan[idx][0]
+    params = None
+    if skill == "navigation":
+        local_plan[idx][1][1]
+        params = local_plan[idx][1][1]
+    else:
+        params = local_plan[idx][1]
+    print(skill)
+    print(params)
     if skill in available_skills:
-        params = None
-        if skill == "navigation":
-            local_plan[idx][1][1]
-            params = local_plan[idx][1][1]
-        else:
-            params = local_plan[idx][1]
-        print(skill)
-        print(params)
         idx = idx + 1
         return (skill, params)
+    elif os.environ['ROBOT_NAME'] == os.environ['CHOSE_ROBOT']:
+        return ("fail", [skill]+params)
     else:
-        return ("fail", [])
+        return (None, [])
 
 def create_init_bt() -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("SendMsg")
@@ -513,7 +515,7 @@ def tutorial_main():
     """
     global local_plan, logpub, publisher, available_skills
     console.logerror(json.dumps(os.environ['ROBOT_CONFIG'], indent=2, sort_keys=True))
-    available_skills = json.loads(os.environ['ROBOT_CONFIG'])["skills"]
+    available_skills = available_skills + json.loads(os.environ['ROBOT_CONFIG'])["skills"]
     local_plan = json.loads(os.environ['ROBOT_CONFIG'])["local_plan"]
     console.loginfo(json.dumps(local_plan, indent=2, sort_keys=True))
     py_trees.logging.level = py_trees.logging.Level.DEBUG
@@ -571,6 +573,17 @@ def tutorial_main():
             if tree.root.status == py_trees.common.Status.SUCCESS:
                 (skill, param_list) = get_local_plan()
                 root = load_skill(skill, param_list)
+                msg = std_msgs.String()
+                msg.data = formatlog('debug',
+                        os.environ['ROBOT_NAME'],
+                        'available-skills',
+                        str(available_skills),
+                        '')
+                publisher.publish(msg)
+                print(available_skills)
+                # if root == None:
+                #     print("Closing Robot "+os.environ['ROBOT_NAME']+" BT")
+                    # break
                 tree = py_trees_ros.trees.BehaviourTree(
                     root=root,
                     unicode_tree_debug=True
@@ -581,7 +594,7 @@ def tutorial_main():
                 #     'skill-life-cycle',
                 #     str(skill),
                 #     '(status=STARTED'+', parameters='+str(param_list)+')')
-                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,param_list)
+                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'STARTED')
                 publisher.publish(msg)
                 def timer_callback():
                     pass
