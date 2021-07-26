@@ -606,6 +606,14 @@ def tutorial_main():
                         '(status=RUNNING'+', parameters='+str(param_list)+')')
                     publisher.publish(msg)
                 count = (count+1)%600
+            elif tree.root.status == py_trees.common.Status.SUCCESS:
+                msg = std_msgs.String()
+                msg.data = formatlog('info',
+                    os.environ['ROBOT_NAME'],
+                    'skill-life-cycle',
+                    str(skill),
+                    '(status=SUCCESS'+', parameters='+str(param_list)+')')
+                publisher.publish(msg)
             else:
                 send_report(tree.root.status, skill, param_list)
                 msg.data = "FAILURE"
