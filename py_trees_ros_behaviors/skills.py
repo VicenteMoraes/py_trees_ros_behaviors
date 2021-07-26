@@ -92,6 +92,7 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
             'sync',
             'wait-message',
             '(status=message-received)')
+    str_data = '{}-status=message-received'.format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -123,6 +124,7 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
             'sync',
             'send-message',
             '(to='+param_list[0]+')')
+    str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -366,6 +368,7 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
             'task-update',
             'navigation',
             'way-point-reached,'+str(percentage*100)+'%')
+        str_data = ('{}-way-point-reached='+tr(percentage*100)+'%').format(os.environ['ROBOT_NAME'])
         param = std_msgs.String(data=str_data)
         log_param = py_trees.behaviours.SetBlackboardVariable(
             name="ParamToBbLog",
@@ -403,6 +406,7 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'authenticate_person',
             'request-authentication,(to=nurse)')
+    str_data = ('{}-request-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -466,6 +470,7 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'authenticate_person',
             'received-authentication,(from=nurse)')
+    str_data = ('{}-received-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -496,6 +501,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'approach_person',
             'localize-person,(who=nurse)')
+    str_data = ('{}-localize-person-who=nurse').format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -574,6 +580,7 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'approach_person',
             'goto-person,(who=nurse)')
+    str_data = ('{}-goto-person-who=nurse').format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -602,6 +609,7 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'approach_robot',
             'localize-robot,(who='+param_list[0]+')')
+    str_data = ('{}-localize-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -680,6 +688,7 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'approach_robot',
             'goto-robot,(who='+param_list[0]+')')
+    str_data = ('{}-goto-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
@@ -707,6 +716,7 @@ def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
             'task-update',
             'operate_drawer',
             param_list[0])
+    str_data = ('{}-operate_drawer='+param_list[0]).format(os.environ['ROBOT_NAME'])
     param = std_msgs.String(data=str_data)
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
