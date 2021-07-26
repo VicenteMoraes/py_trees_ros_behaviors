@@ -219,29 +219,6 @@ def generate_launch_description():
 ##############################################################################
 
 
-def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
-    if skill == "navigation":
-        root = skills.create_nav_to_room_bt(param_list)
-    elif skill == "operate_drawer":
-        root = skills.create_action_drawer_bt(param_list)
-    elif skill == "approach_robot":
-        root = skills.create_approach_robot_bt(param_list)
-    elif skill == "approach_person":
-        root = skills.create_approach_nurse_bt(param_list)
-    elif skill == "authenticate_person":
-        root = skills.create_authenticate_nurse_bt(param_list)
-    elif skill == "wait_message":
-        root = skills.create_wait_message(param_list)
-    elif skill == "send_message":
-        root = skills.create_send_message(param_list)
-    elif skill == "SencondBT":
-        root = skills.create_second_bt()
-    elif skill == "fail":
-        root = skills.going_to_fail()
-    else:
-        root = None
-    return root
-
 skill_name = "0"
 # skill_name = "SencondBT"
 
@@ -435,14 +412,40 @@ def get_plan():
 
 def send_report(status, skill, param_list):
     msg = std_msgs.String()
-    msg.data = formatlog('info',
-        os.environ['ROBOT_NAME'],
-        'skill-life-cycle',
-        str(skill),
-        '(status='+str(status)+', parameters='+str(param_list)+')')
+    # msg.data = formatlog('info',
+    #     os.environ['ROBOT_NAME'],
+    #     'skill-life-cycle',
+    #     str(skill),
+    #     '(status='+str(status)+', parameters='+str(param_list)+')')
+    msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,param_list)
+    msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,status)
     publisher.publish(msg)
     print(status)
 
+
+def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
+    if skill == "navigation":
+        root = skills.create_nav_to_room_bt(param_list)
+    elif skill == "operate_drawer":
+        root = skills.create_action_drawer_bt(param_list)
+    elif skill == "approach_robot":
+        root = skills.create_approach_robot_bt(param_list)
+    elif skill == "approach_person":
+        root = skills.create_approach_nurse_bt(param_list)
+    elif skill == "authenticate_person":
+        root = skills.create_authenticate_nurse_bt(param_list)
+    elif skill == "wait_message":
+        root = skills.create_wait_message(param_list)
+    elif skill == "send_message":
+        root = skills.create_send_message(param_list)
+    elif skill == "SencondBT":
+        root = skills.create_second_bt()
+    elif skill == "fail":
+        send_report('FAILURE', 'robot-without-skill', 'robot-without-skill')
+        root = skills.going_to_fail()
+    else:
+        root = None
+    return root
 
 def logger(snapshot_visitor, behaviour_tree):
     """
@@ -573,11 +576,12 @@ def tutorial_main():
                     unicode_tree_debug=True
                 )
                 msg = std_msgs.String()
-                msg.data = formatlog('info',
-                    os.environ['ROBOT_NAME'],
-                    'skill-life-cycle',
-                    str(skill),
-                    '(status=STARTED'+', parameters='+str(param_list)+')')
+                # msg.data = formatlog('info',
+                #     os.environ['ROBOT_NAME'],
+                #     'skill-life-cycle',
+                #     str(skill),
+                #     '(status=STARTED'+', parameters='+str(param_list)+')')
+                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,param_list)
                 publisher.publish(msg)
                 def timer_callback():
                     pass
@@ -599,27 +603,30 @@ def tutorial_main():
                     print(py_trees.display.unicode_tree(root=tree.root))
                 if count == 0:
                     msg = std_msgs.String()
-                    msg.data = formatlog('info',
-                        os.environ['ROBOT_NAME'],
-                        'skill-life-cycle',
-                        str(skill),
-                        '(status=RUNNING'+', parameters='+str(param_list)+')')
+                    # msg.data = formatlog('info',
+                    #     os.environ['ROBOT_NAME'],
+                    #     'skill-life-cycle',
+                    #     str(skill),
+                    #     '(status=RUNNING/parameters='+str(param_list)+')')
+                    msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'RUNNING')
                     publisher.publish(msg)
                 count = (count+1)%600
             elif tree.root.status == py_trees.common.Status.SUCCESS:
                 msg = std_msgs.String()
-                msg.data = formatlog('info',
-                    os.environ['ROBOT_NAME'],
-                    'skill-life-cycle',
-                    str(skill),
-                    '(status=SUCCESS'+', parameters='+str(param_list)+')')
+                # msg.data = formatlog('info',
+                #     os.environ['ROBOT_NAME'],
+                #     'skill-life-cycle',
+                #     str(skill),
+                #     '(status=SUCCESS/parameters='+str(param_list)+')')
+                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'SUCCESS')
                 publisher.publish(msg)
             else:
                 send_report(tree.root.status, skill, param_list)
-                msg.data = "FAILURE"
+                # msg.data = "FAILURE"
+                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
                 publisher.publish(msg)
-                # msg.data = "ENDSIM"
-                # publisher.publish(msg)
+                msg.data = '{}-skill-failure-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
+                publisher.publish(msg)
                 rclpy.spin_once(logpub, timeout_sec=0)
 
             # tree.root.tick_once()
