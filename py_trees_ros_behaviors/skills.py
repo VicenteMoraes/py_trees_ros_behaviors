@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import math
+import json
 import functools
 
 import launch
@@ -93,7 +94,16 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
             'wait-message',
             '(status=message-received)')
     str_data = '{}-status=message-received'.format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'wait-message',
+        'status': 'message-received'
+    }
+    logdata = {
+        'level': 'info',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -125,7 +135,16 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
             'send-message',
             '(to='+param_list[0]+')')
     str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'send-message',
+        'to': param_list[0]
+    }
+    logdata = {
+        'level': 'info',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -228,7 +247,9 @@ def going_to_fail(params) -> py_trees.behaviour.Behaviour:
     root.add_children([timer, fail])
     return root
 
-def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
+def create_nav_to_room_bt(path) -> py_trees.behaviour.Behaviour:
+    destiny = path[0]
+    ways = path[1]
 
     # Pseudo Waypoints Path
     # [[-28.5, 18.0, -1.57], [-19, 16], [-37, 15], [-39.44, 33.98, 0.0]]
@@ -310,7 +331,7 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
         )
     )
     suc = py_trees.behaviours.Success(name='Success')
-    sub_ways = create_waypoints_sequence(ways)
+    sub_ways = create_waypoints_sequence(destiny, ways)
     
 
     # Build Tree
@@ -323,7 +344,7 @@ def create_nav_to_room_bt(ways) -> py_trees.behaviour.Behaviour:
 
     return sub_ways
 
-def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
+def create_waypoints_sequence(destiny, waypoints) -> py_trees.behaviour.Behaviour:
     waypoints.pop(0) # pop robot's initial position
     sub_root = py_trees.composites.Sequence("Waypoints Subtree")
 
@@ -368,8 +389,19 @@ def create_waypoints_sequence(waypoints) -> py_trees.behaviour.Behaviour:
             'task-update',
             'navigation',
             'way-point-reached,'+str(percentage*100)+'%')
-        str_data = ('{}-way-point-reached='+tr(percentage*100)+'%').format(os.environ['ROBOT_NAME'])
-        param = std_msgs.String(data=str_data)
+        str_data = ('{}-way-point-reached='+str(percentage*100)+'%').format(os.environ['ROBOT_NAME'])
+        content = {
+            'skill': 'navigation',
+            'status': 'way-point-reached',
+            'goingto': destiny,
+            'percentage': '{:02.2f}%'.format(percentage*100)
+        }
+        logdata = {
+            'level': 'debug',
+            'entity': os.environ['ROBOT_NAME'],
+            'content': content
+        }
+        param = std_msgs.String(data=json.dumps(logdata))
         log_param = py_trees.behaviours.SetBlackboardVariable(
             name="ParamToBbLog",
             variable_name='/param',
@@ -407,7 +439,17 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'authenticate_person',
             'request-authentication,(to=nurse)')
     str_data = ('{}-request-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'authenticate-person',
+        'status': 'request-authentication',
+        'to': 'nurse'
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -471,7 +513,17 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'authenticate_person',
             'received-authentication,(from=nurse)')
     str_data = ('{}-received-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'authenticate-person',
+        'status': 'received-authentication',
+        'from': 'nurse'
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -502,7 +554,17 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'approach_person',
             'localize-person,(who=nurse)')
     str_data = ('{}-localize-person-who=nurse').format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'approach-person',
+        'status': 'localize-person',
+        'who': 'nurse'
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -581,7 +643,17 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
             'approach_person',
             'goto-person,(who=nurse)')
     str_data = ('{}-goto-person-who=nurse').format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'approach-person',
+        'status': 'goto-person',
+        'who': 'nurse'
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -610,7 +682,17 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
             'approach_robot',
             'localize-robot,(who='+param_list[0]+')')
     str_data = ('{}-localize-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': '=approach-robot',
+        'status': 'localize-robot',
+        'who': '{}'.format(param_list[0])
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -689,7 +771,17 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
             'approach_robot',
             'goto-robot,(who='+param_list[0]+')')
     str_data = ('{}-goto-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'approach-robot',
+        'status': 'goto-robot',
+        'who': '{}'.format(param_list[0])
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -717,7 +809,17 @@ def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
             'operate_drawer',
             param_list[0])
     str_data = ('{}-operate_drawer='+param_list[0]).format(os.environ['ROBOT_NAME'])
-    param = std_msgs.String(data=str_data)
+    content = {
+        'skill': 'operate-drawer',
+        'status': 'task-update',
+        'action': '{}'.format(param_list[0])
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    param = std_msgs.String(data=json.dumps(logdata))
     log_param = py_trees.behaviours.SetBlackboardVariable(
         name="ParamToBbLog",
         variable_name='/param',
@@ -956,7 +1058,7 @@ def create_second_bt() -> py_trees.behaviour.Behaviour:
         name="Scanning",
         policy=py_trees.common.ParallelPolicy.SuccessOnOne()
     )
-    scan_context_switch = behaviours.ScanContext("Context Switch")
+    scan_content_switch = behaviours.Scancontent("content Switch")
     scan_rotate = py_trees_ros.actions.ActionClient(
         name="Rotate",
         action_type=py_trees_actions.Rotate,
@@ -1025,6 +1127,6 @@ def create_second_bt() -> py_trees.behaviour.Behaviour:
     scan_or_be_cancelled.add_children([cancelling, move_out_and_scan])
     cancelling.add_children([is_cancel_requested, move_home_after_cancel, result_cancelled_to_bb])
     move_out_and_scan.add_children([move_base, scanning, move_home_after_scan, result_succeeded_to_bb])
-    scanning.add_children([scan_context_switch, scan_rotate, scan_flash_blue])
+    scanning.add_children([scan_content_switch, scan_rotate, scan_flash_blue])
     celebrate.add_children([celebrate_flash_green, celebrate_pause])
     return root

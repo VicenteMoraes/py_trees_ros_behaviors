@@ -290,12 +290,13 @@ def get_local_plan():
     skill = local_plan[idx][0]
     params = None
     if skill == "navigation":
-        local_plan[idx][1][1]
-        params = local_plan[idx][1][1]
+        local_plan[idx][1]
+        params = local_plan[idx][1]
     else:
         params = local_plan[idx][1]
     print(skill)
     print(params)
+    print(f"{os.environ['ROBOT_NAME']} == {os.environ['CHOSE_ROBOT']}")
     if skill in available_skills:
         idx = idx + 1
         return (skill, params)
@@ -421,6 +422,17 @@ def send_report(status, skill, param_list):
     #     '(status='+str(status)+', parameters='+str(param_list)+')')
     msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,param_list)
     msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,status)
+    # publisher.publish(msg)
+    content = {
+        'skill': skill,
+        'skill-life-cycle': 'UNAVAILABLE-SKILL'
+    }
+    logdata = {
+        'level': 'debug',
+        'entity': os.environ['ROBOT_NAME'],
+        'content': content
+    }
+    msg.data = json.dumps(logdata)
     publisher.publish(msg)
     print(status)
 
@@ -443,8 +455,8 @@ def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
     elif skill == "SencondBT":
         root = skills.create_second_bt()
     elif skill == "fail":
+        root = skills.going_to_fail(param_list)
         send_report('FAILURE', 'robot-without-skill', 'robot-without-skill')
-        root = skills.going_to_fail()
     else:
         root = None
     return root
@@ -579,6 +591,12 @@ def tutorial_main():
                         'available-skills',
                         str(available_skills),
                         '')
+                logdata = {
+                    'level': 'debug',
+                    'entity': os.environ['ROBOT_NAME'],
+                    'content': 'available-skills={}'.format(available_skills)
+                }
+                msg.data = json.dumps(logdata)
                 publisher.publish(msg)
                 print(available_skills)
                 # if root == None:
@@ -595,6 +613,16 @@ def tutorial_main():
                 #     str(skill),
                 #     '(status=STARTED'+', parameters='+str(param_list)+')')
                 msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'STARTED')
+                content = {
+                    'skill': skill,
+                    'skill-life-cycle': 'STARTED'
+                }
+                logdata = {
+                    'level': 'debug',
+                    'entity': os.environ['ROBOT_NAME'],
+                    'content': content
+                }
+                msg.data = json.dumps(logdata)
                 publisher.publish(msg)
                 def timer_callback():
                     pass
@@ -622,6 +650,16 @@ def tutorial_main():
                     #     str(skill),
                     #     '(status=RUNNING/parameters='+str(param_list)+')')
                     msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'RUNNING')
+                    content = {
+                        'skill': skill,
+                        'skill-life-cycle': 'RUNNING'
+                    }
+                    logdata = {
+                        'level': 'debug',
+                        'entity': os.environ['ROBOT_NAME'],
+                        'content': content
+                    }
+                    msg.data = json.dumps(logdata)
                     publisher.publish(msg)
                 count = (count+1)%600
             elif tree.root.status == py_trees.common.Status.SUCCESS:
@@ -632,13 +670,33 @@ def tutorial_main():
                 #     str(skill),
                 #     '(status=SUCCESS/parameters='+str(param_list)+')')
                 msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'SUCCESS')
+                content = {
+                    'skill': skill,
+                    'skill-life-cycle': 'SUCCESS'
+                }
+                logdata = {
+                    'level': 'debug',
+                    'entity': os.environ['ROBOT_NAME'],
+                    'content': content
+                }
+                msg.data = json.dumps(logdata)
                 publisher.publish(msg)
             else:
                 send_report(tree.root.status, skill, param_list)
                 # msg.data = "FAILURE"
-                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
-                publisher.publish(msg)
+                # msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
+                # publisher.publish(msg)
                 msg.data = '{}-skill-failure-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
+                content = {
+                    'skill': skill,
+                    'skill-life-cycle': 'FAILURE'
+                }
+                logdata = {
+                    'level': 'debug',
+                    'entity': os.environ['ROBOT_NAME'],
+                    'content': content
+                }
+                msg.data = json.dumps(logdata)
                 publisher.publish(msg)
                 rclpy.spin_once(logpub, timeout_sec=0)
 
