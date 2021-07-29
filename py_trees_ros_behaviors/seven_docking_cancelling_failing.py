@@ -289,21 +289,20 @@ def get_local_plan():
     global local_plan, idx, available_skills
     skill = local_plan[idx][0]
     params = None
-    if skill == "navigation":
-        local_plan[idx][1]
-        params = local_plan[idx][1]
-    else:
-        params = local_plan[idx][1]
+    local_plan[idx][1]
+    params = local_plan[idx][1]
+    label = local_plan[idx][2]
     print(skill)
     print(params)
+    print(label)
     print(f"{os.environ['ROBOT_NAME']} == {os.environ['CHOSE_ROBOT']}")
     if skill in available_skills:
         idx = idx + 1
-        return (skill, params)
+        return (skill, params, label)
     elif os.environ['ROBOT_NAME'] == os.environ['CHOSE_ROBOT']:
         return ("fail", [skill]+params)
     else:
-        return (None, [])
+        return (None, [], '')
 
 def create_init_bt() -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("SendMsg")
@@ -425,7 +424,8 @@ def send_report(status, skill, param_list):
     # publisher.publish(msg)
     content = {
         'skill': skill,
-        'skill-life-cycle': 'UNAVAILABLE-SKILL'
+        'report-status': status
+        'param_list' : param_list
     }
     logdata = {
         'level': 'debug',
@@ -456,7 +456,8 @@ def load_skill(skill, param_list) -> py_trees.behaviour.Behaviour:
         root = skills.create_second_bt()
     elif skill == "fail":
         root = skills.going_to_fail(param_list)
-        send_report('FAILURE', 'robot-without-skill', 'robot-without-skill')
+        send_report('UNAVAILABLE-SKILL', param_list[0], param_list)
+        send_report('FAILURE', 'robot-without-skill', param_list)
     else:
         root = None
     return root
@@ -583,7 +584,7 @@ def tutorial_main():
         try:
             print(tree.root.status)
             if tree.root.status == py_trees.common.Status.SUCCESS:
-                (skill, param_list) = get_local_plan()
+                (skill, param_list, label) = get_local_plan()
                 root = load_skill(skill, param_list)
                 msg = std_msgs.String()
                 msg.data = formatlog('debug',
@@ -615,7 +616,8 @@ def tutorial_main():
                 msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'STARTED')
                 content = {
                     'skill': skill,
-                    'skill-life-cycle': 'STARTED'
+                    'skill-life-cycle': 'STARTED',
+                    'label': label
                 }
                 logdata = {
                     'level': 'debug',
@@ -652,7 +654,8 @@ def tutorial_main():
                     msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'RUNNING')
                     content = {
                         'skill': skill,
-                        'skill-life-cycle': 'RUNNING'
+                        'skill-life-cycle': 'RUNNING',
+                        'label': label
                     }
                     logdata = {
                         'level': 'debug',
@@ -672,7 +675,8 @@ def tutorial_main():
                 msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'SUCCESS')
                 content = {
                     'skill': skill,
-                    'skill-life-cycle': 'SUCCESS'
+                    'skill-life-cycle': 'SUCCESS',
+                    'label': label
                 }
                 logdata = {
                     'level': 'debug',
@@ -681,15 +685,17 @@ def tutorial_main():
                 }
                 msg.data = json.dumps(logdata)
                 publisher.publish(msg)
+                rclpy.spin_once(logpub, timeout_sec=0)
             else:
                 send_report(tree.root.status, skill, param_list)
                 # msg.data = "FAILURE"
                 # msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
                 # publisher.publish(msg)
-                msg.data = '{}-skill-failure-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
+                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'FAILURE')
                 content = {
                     'skill': skill,
-                    'skill-life-cycle': 'FAILURE'
+                    'skill-life-cycle': 'FAILURE',
+                    'label': label
                 }
                 logdata = {
                     'level': 'debug',
