@@ -68,8 +68,8 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     # timer = py_trees.timers.Timer('Timer', duration=5.0)
     timer = behaviours.MyTimer(name='Waiting', duration=1.0)
     resp_2bb = py_trees_ros.subscribers.ToBlackboard(
-        name="response2BB_"+str(param_list),
-        topic_name="/"+str(param_list)+"/comms",
+        name="response2BB_"+param_list[0],
+        topic_name="/"+param_list[0]+"/comms",
         topic_type=std_msgs.String,
         qos_profile=py_trees_ros.utilities.qos_profile_unlatched(),
         blackboard_variables = {'response_msg': 'data'}
@@ -86,7 +86,7 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
             operator=operator.eq
         )
     )
-    suc = py_trees.behaviours.Success(name=str(param_list)+'_success')
+    suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
     root.add_children([resp_2bb, wait_for_res, suc])
     str_data = formatlog('info',
             os.environ['ROBOT_NAME'],
@@ -137,7 +137,7 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'send-message',
-        'to': param_list
+        'to': param_list[0]
     }
     logdata = {
         'level': 'info',
