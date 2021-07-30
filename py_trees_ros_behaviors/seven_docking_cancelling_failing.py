@@ -585,6 +585,20 @@ def tutorial_main():
         try:
             print(tree.root.status)
             if tree.root.status == py_trees.common.Status.SUCCESS:
+                msg = std_msgs.String()
+                content = {
+                    'skill': skill,
+                    'skill-life-cycle': 'SUCCESS',
+                    'label': label,
+                    'param_list': param_list
+                }
+                logdata = {
+                    'level': 'debug',
+                    'entity': os.environ['ROBOT_NAME'],
+                    'content': content
+                }
+                msg.data = json.dumps(logdata)
+                publisher.publish(msg)
                 (skill, param_list, label) = get_local_plan()
                 root = load_skill(skill, param_list)
                 msg = std_msgs.String()
@@ -618,7 +632,8 @@ def tutorial_main():
                 content = {
                     'skill': skill,
                     'skill-life-cycle': 'STARTED',
-                    'label': label
+                    'label': label,
+                    'param_list': param_list
                 }
                 logdata = {
                     'level': 'debug',
@@ -656,7 +671,8 @@ def tutorial_main():
                     content = {
                         'skill': skill,
                         'skill-life-cycle': 'RUNNING',
-                        'label': label
+                        'label': label,
+                        'param_list': param_list
                     }
                     logdata = {
                         'level': 'debug',
@@ -666,27 +682,6 @@ def tutorial_main():
                     msg.data = json.dumps(logdata)
                     publisher.publish(msg)
                 count = (count+1)%600
-            elif tree.root.status == py_trees.common.Status.SUCCESS:
-                msg = std_msgs.String()
-                # msg.data = formatlog('info',
-                #     os.environ['ROBOT_NAME'],
-                #     'skill-life-cycle',
-                #     str(skill),
-                #     '(status=SUCCESS/parameters='+str(param_list)+')')
-                msg.data = '{}-skill-life-cycle-{}={}'.format(os.environ['ROBOT_NAME'],skill,'SUCCESS')
-                content = {
-                    'skill': skill,
-                    'skill-life-cycle': 'SUCCESS',
-                    'label': label
-                }
-                logdata = {
-                    'level': 'debug',
-                    'entity': os.environ['ROBOT_NAME'],
-                    'content': content
-                }
-                msg.data = json.dumps(logdata)
-                publisher.publish(msg)
-                rclpy.spin_once(logpub, timeout_sec=0)
             else:
                 send_report(tree.root.status, skill, param_list)
                 # msg.data = "FAILURE"
@@ -696,7 +691,8 @@ def tutorial_main():
                 content = {
                     'skill': skill,
                     'skill-life-cycle': 'FAILURE',
-                    'label': label
+                    'label': label,
+                    'param_list': param_list
                 }
                 logdata = {
                     'level': 'debug',
