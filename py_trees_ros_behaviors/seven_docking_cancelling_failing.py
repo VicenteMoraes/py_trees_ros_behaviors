@@ -300,7 +300,7 @@ def get_local_plan():
         idx = idx + 1
         return (skill, params, label)
     elif os.environ['ROBOT_NAME'] == os.environ['CHOSE_ROBOT']:
-        return ("fail", [skill]+params)
+        return ("fail", [skill]+params, 'UNAVAILABLE-SKILL')
     else:
         return (None, [], '')
 
