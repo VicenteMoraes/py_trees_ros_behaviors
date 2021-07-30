@@ -424,7 +424,7 @@ def send_report(status, skill, param_list):
     # publisher.publish(msg)
     content = {
         'skill': skill,
-        'report-status': status
+        'report-status': status,
         'param_list' : param_list
     }
     logdata = {
