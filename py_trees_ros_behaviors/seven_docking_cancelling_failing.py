@@ -577,6 +577,7 @@ def tutorial_main():
     publisher = logpub.create_publisher(std_msgs.String, '/log', 10)
     skill = "init_robobt"
     param_list = []
+    label = "init_robobt"
 
     # blackboard = py_trees.blackboard.Client(name="Global")
     count = 0
