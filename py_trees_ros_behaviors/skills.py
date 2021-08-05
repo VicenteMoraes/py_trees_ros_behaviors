@@ -129,12 +129,12 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # suc = py_trees.behaviours.Success(name="Success")
     # root.add_children([suc])
     # print(param_list[3])
-    str_data = formatlog('info',
-            os.environ['ROBOT_NAME'],
-            'sync',
-            'send-message',
-            '(to='+param_list[0]+')')
-    str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
+    # str_data = formatlog('info',
+    #         os.environ['ROBOT_NAME'],
+    #         'sync',
+    #         'send-message',
+    #         '(to='+param_list[0]+')')
+    # str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'send-message',
         'to': param_list[0]
