@@ -536,7 +536,7 @@ def tutorial_main():
     rclpy.init(args=None)
     # root = create_nav_to_room_bt()
     root = py_trees.composites.Sequence("Idle")
-    timer = behaviours.MyTimer(name="timer", duration=7.0)
+    timer = behaviours.MyTimer(name="timer", duration=10.0)
     suc = py_trees.behaviours.Success(name="Success")
     # root.add_child(suc)
     root.add_children([timer, suc])
