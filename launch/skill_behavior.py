@@ -8,13 +8,13 @@
 # Documentation
 ##############################################################################
 """
-Tutorial 7 - Docking, Cancelling & Failing
+Dynamic Loader for BT
 """
 ##############################################################################
 # Imports
 ##############################################################################
 
-import py_trees_ros_behaviors.skill_engine as tutorial
+import py_trees_ros_behaviors.skill_engine as skill_engine
 
 ##############################################################################
 # Launch Service
@@ -25,4 +25,4 @@ def generate_launch_description():
     """
     Launch description for the tutorial.
     """
-    return tutorial.generate_launch_description()
+    return skill_engine.generate_launch_description()

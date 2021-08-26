@@ -186,7 +186,7 @@ import geometry_msgs.msg as geometry_msgs
 import std_msgs.msg as std_msgs
 
 from . import behaviours
-from . import skills
+from . import skill_library
 from . import mock
 
 ##############################################################################
@@ -207,7 +207,7 @@ def generate_launch_description():
             launch_ros.actions.SetParameter(name='use_sim_time', value=True),
             launch_ros.actions.Node(
                 package='py_trees_ros_behaviors',
-                executable="tree-docking-cancelling-failing",
+                executable="skill-engine",
                 output='screen',
                 emulate_tty=True,
             )
