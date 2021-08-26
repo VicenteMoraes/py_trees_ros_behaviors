@@ -153,7 +153,7 @@ Running
 .. code-block:: bash
 
     # Launch the tutorial
-    $ ros2 launch py_trees_ros_behaviors tutorial_seven_docking_cancelling_failing_launch.py
+    $ ros2 launch py_trees_ros_behaviors skill_behavior.py
     # In another shell
     $ py-trees-tree-watcher -b
     # Trigger scan/cancel requests from the qt dashboard
@@ -193,7 +193,7 @@ from . import mock
 # Launcher
 ##############################################################################
 
-# ros2 launch py_trees_ros_behaviors tutorial_seven_docking_cancelling_failing_launch.py
+# ros2 launch py_trees_ros_behaviors skill_behavior.py
 def generate_launch_description():
     """
     Launcher for the tutorial.
