@@ -131,7 +131,7 @@ setup(
             'tree-battery-check = py_trees_ros_behaviors.two_battery_check:tutorial_main',
             'tree-action-clients = py_trees_ros_behaviors.five_action_clients:tutorial_main',
             'tree-context-switching = py_trees_ros_behaviors.six_context_switching:tutorial_main',
-            'tree-docking-cancelling-failing = py_trees_ros_behaviors.seven_docking_cancelling_failing:tutorial_main',
+            'skill-engine = py_trees_ros_behaviors.skill_engine:main',
             'tree-dynamic-application-loading = py_trees_ros_behaviors.eight_dynamic_application_loading:tutorial_main',
         ],
     },

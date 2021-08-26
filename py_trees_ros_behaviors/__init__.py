@@ -21,7 +21,7 @@ from . import one_data_gathering
 from . import two_battery_check
 from . import five_action_clients
 from . import six_context_switching
-from . import seven_docking_cancelling_failing
+from . import skill_engine
 from . import eight_dynamic_application_loading
 
 ##############################################################################

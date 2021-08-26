@@ -519,7 +519,7 @@ def post_tick_handler(snapshot_visitor, behaviour_tree):
     )
     print(py_trees.display.unicode_blackboard())
 
-def tutorial_main():
+def main():
     """
     Entry point for the demo script.
     """
