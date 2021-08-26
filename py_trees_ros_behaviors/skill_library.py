@@ -30,13 +30,6 @@ from . import behaviours
 from . import mock
 
 # func utils
-def formatlog(severity, who, loginfo, skill, params):
-    return ('['+severity+'],'+
-               who+','+
-               loginfo+','+
-               skill+','+
-               params)
-
 def quaternion_from_euler(roll, pitch, yaw):
     """
     Converts euler roll, pitch, yaw to quaternion (w in last place)
@@ -88,12 +81,6 @@ def create_wait_message(param_list) -> py_trees.behaviour.Behaviour:
     )
     suc = py_trees.behaviours.Success(name=param_list[0]+'_success')
     root.add_children([resp_2bb, wait_for_res, suc])
-    str_data = formatlog('info',
-            os.environ['ROBOT_NAME'],
-            'sync',
-            'wait-message',
-            '(status=message-received)')
-    str_data = '{}-status=message-received'.format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'wait-message',
         'status': 'message-received'
@@ -129,12 +116,6 @@ def create_send_message(param_list) -> py_trees.behaviour.Behaviour:
     # suc = py_trees.behaviours.Success(name="Success")
     # root.add_children([suc])
     # print(param_list[3])
-    # str_data = formatlog('info',
-    #         os.environ['ROBOT_NAME'],
-    #         'sync',
-    #         'send-message',
-    #         '(to='+param_list[0]+')')
-    # str_data = ('{}-send-message-to='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'send-message',
         'to': param_list[0]
@@ -384,12 +365,6 @@ def create_waypoints_sequence(destiny, waypoints) -> py_trees.behaviour.Behaviou
         sub_root.add_children([timer, move_to_somewhere])
         # TASK UPDATE [LOG]
         percentage = float(waypoints.index(waypoint)+1)/len(waypoints)
-        str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'navigation',
-            'way-point-reached,'+str(percentage*100)+'%')
-        str_data = ('{}-way-point-reached='+str(percentage*100)+'%').format(os.environ['ROBOT_NAME'])
         content = {
             'skill': 'navigation',
             'status': 'way-point-reached',
@@ -433,12 +408,6 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Receive authentication
     # return succeeded
     root = py_trees.composites.Sequence("Authenticate Nurse")
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'authenticate_person',
-            'request-authentication,(to=nurse)')
-    str_data = ('{}-request-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'authenticate-person',
         'status': 'request-authentication',
@@ -507,12 +476,6 @@ def create_authenticate_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     )
     # Send position to robot
     root.add_children([req_to_bb, wait_for_req, publisher, nurse_resp_2bb, wait_for_res, is_authenticated])
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'authenticate_person',
-            'received-authentication,(from=nurse)')
-    str_data = ('{}-received-authentication-to=nurse').format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'authenticate-person',
         'status': 'received-authentication',
@@ -548,12 +511,6 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach Nurse")
 
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'approach_person',
-            'localize-person,(who=nurse)')
-    str_data = ('{}-localize-person-who=nurse').format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'approach-person',
         'status': 'localize-person',
@@ -637,12 +594,6 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Send position to robot
     # return succeeded
     root.add_children([nurse_pos_2bb, wait_for_data])
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'approach_person',
-            'goto-person,(who=nurse)')
-    str_data = ('{}-goto-person-who=nurse').format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'approach-person',
         'status': 'goto-person',
@@ -676,12 +627,6 @@ def create_approach_nurse_bt(param_list) -> py_trees.behaviour.Behaviour:
 def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
     # root = py_trees.behaviours.Success(name="Success")
     root = py_trees.composites.Sequence("Approach robot")
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'approach_robot',
-            'localize-robot,(who='+param_list[0]+')')
-    str_data = ('{}-localize-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': '=approach-robot',
         'status': 'localize-robot',
@@ -765,12 +710,6 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
     # Send position to robot
     # return succeeded
     root.add_children([robot_pos_2bb, wait_for_data])
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'approach_robot',
-            'goto-robot,(who='+param_list[0]+')')
-    str_data = ('{}-goto-robot-who='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'approach-robot',
         'status': 'goto-robot',
@@ -803,12 +742,6 @@ def create_approach_robot_bt(param_list) -> py_trees.behaviour.Behaviour:
 
 def create_action_drawer_bt(param_list) -> py_trees.behaviour.Behaviour:
     root = py_trees.composites.Sequence("ActionDrawer")
-    str_data = formatlog('debug',
-            os.environ['ROBOT_NAME'],
-            'task-update',
-            'operate_drawer',
-            param_list[0])
-    str_data = ('{}-operate_drawer='+param_list[0]).format(os.environ['ROBOT_NAME'])
     content = {
         'skill': 'operate-drawer',
         'status': 'task-update',
