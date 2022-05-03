@@ -16,6 +16,8 @@ A mock robot and tutorials for py_trees on ROS2.
 
 from . import behaviours
 from . import mock
+from . import deeco
+from .hmrs_mission_control import mission_control
 
 from . import one_data_gathering
 from . import two_battery_check
