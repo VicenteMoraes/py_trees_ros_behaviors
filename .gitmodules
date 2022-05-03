@@ -1,0 +1,3 @@
+[submodule "py_trees_ros_behaviors/hmrs_mission_control"]
+	path = py_trees_ros_behaviors/hmrs_mission_control
+	url = git@github.com:lesunb/hmrs_mission_control.git
