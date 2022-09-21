@@ -26,7 +26,8 @@ import nav_msgs.msg as nav_msgs
 import numbers
 import time
 from typing import Any, Callable
-import random, math
+import random
+import math
 ##############################################################################
 # Behaviours
 ##############################################################################
