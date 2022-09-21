@@ -350,9 +350,6 @@ def main():
         msg.data = json.dumps(logdata)
         publisher.publish(msg)
 
-        except KeyboardInterrupt:
-            pass
-
     logpub.destroy_timer(timer)
     logpub.destroy_node()
     rclpy.shutdown()
