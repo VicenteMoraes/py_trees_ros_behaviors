@@ -185,10 +185,10 @@ import rclpy
 import geometry_msgs.msg as geometry_msgs
 import std_msgs.msg as std_msgs
 
-from bt_skills import behaviours
-from bt_skills import skill_library
-from bt_skills import mock
-from bt_skills.hmrs_mission_control.mission_control.execution import ActiveSkillController, SequencingProcess, TaskStatus, LocalMissionController
+import behaviours
+import skill_library
+import mock
+from hmrs_mission_control.mission_control.execution import ActiveSkillController, SequencingProcess, TaskStatus, LocalMissionController
 
 ##############################################################################
 # Launcher

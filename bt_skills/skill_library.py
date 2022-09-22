@@ -4,8 +4,8 @@ import py_trees_ros_interfaces.action as py_trees_actions  # noqa
 import geometry_msgs.msg as geometry_msgs
 import std_msgs.msg as std_msgs
 
-from bt_skills import behaviours
-from bt_skills import mock
+import behaviours
+import mock
 
 from mission_control.execution import SkillLibrary, TickStatus, SkillImplementation
 
